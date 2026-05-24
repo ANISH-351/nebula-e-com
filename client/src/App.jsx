@@ -15,10 +15,12 @@ import Cart from './components/Cart/Cart';
 import Checkout from './components/Checkout/Checkout';
 import CategoryPage from './components/Category/CategoryPage';
 import Wishlist from './components/Wishlist/Wishlist';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
     <BrowserRouter>
+    <ScrollToTop />
     <Header />
       <Routes>
         <Route path="/"
