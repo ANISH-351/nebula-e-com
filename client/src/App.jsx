@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Product from './components/home/product';
+import Product from './components/home/Product';
 import ProductDashboard from './components/DashBoard/ProductDashboard';
 import CategoryDashboard from './components/DashBoard/CategoryDashboard';
 import BannerDashboard from './components/DashBoard/BannerDashboard';
@@ -11,7 +11,7 @@ import Addsection from './components/home/Addsection';
 import FeaturedProducts from './components/home/FeaturedProducts';
 import Footer from './components/Footer/Footer';
 import ProductDetails from './components/ProductDetail/ProductDetail';
-import Cart from './components/cart/Cart';
+import Cart from './components/Cart/Cart';
 import Checkout from './components/Checkout/Checkout';
 import CategoryPage from './components/Category/CategoryPage';
 import Wishlist from './components/Wishlist/Wishlist';
