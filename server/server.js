@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
 
@@ -13,15 +14,15 @@ app.use('/', require('./routes/cartRoutes'));
 app.use('/', require('./routes/usersRoutes'));
 app.use('/', require('./routes/categoryRoutes'));
 app.use('/', require('./routes/wishlistRoutes'));
-
-app.use('/', require('./routes/profileRoutes'))
-app.use('/', require('./routes/addressRoutes'))
-app.use('/',require('./routes/bannerRoutes'));
+app.use('/', require('./routes/profileRoutes'));
+app.use('/', require('./routes/addressRoutes'));
+app.use('/', require('./routes/bannerRoutes'));
 
 app.get('/', (req, res) => {
     res.send('API running');
 });
 
-app.listen(5000, () => {
-    console.log('Server running on 5000');
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server running on ${PORT}`);
 });
