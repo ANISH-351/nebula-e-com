@@ -1,59 +1,73 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Product from './components/home/Product';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+
 import ProductDashboard from './components/DashBoard/ProductDashboard';
 import CategoryDashboard from './components/DashBoard/CategoryDashboard';
 import BannerDashboard from './components/DashBoard/BannerDashboard';
+
 import Header from './components/Header/Header';
+import Footer from './components/Footer/Footer';
+
 import Banner from './components/home/Banner';
 import Category from './components/home/Category';
 import NewArrival from './components/home/NewArrival';
 import Addsection from './components/home/Addsection';
 import FeaturedProducts from './components/home/FeaturedProducts';
-import Footer from './components/Footer/Footer';
+
 import ProductDetails from './components/ProductDetail/ProductDetail';
 import Cart from './components/Cart/Cart';
 import Checkout from './components/Checkout/Checkout';
 import CategoryPage from './components/Category/CategoryPage';
 import Wishlist from './components/Wishlist/Wishlist';
+
 import ScrollToTop from './components/ScrollToTop';
 
 function App() {
+  const location = useLocation();
+
+  // hide header/footer for dashboard pages
+  const isDashboard =
+    location.pathname.includes('dashboard');
+
   return (
-    <BrowserRouter>
-    <ScrollToTop />
-    <Header />
+    <>
+      <ScrollToTop />
+
+      {!isDashboard && <Header />}
+
       <Routes>
-        <Route path="/"
-         element={<>
-        
-        <Banner/>
-      
-        <Category/>
-        <NewArrival/>
-        <Addsection/>
-        <FeaturedProducts/>
-       
+        <Route
+          path="/"
+          element={
+            <>
+              <Banner />
+              <Category />
+              <NewArrival />
+              <Addsection />
+              <FeaturedProducts />
+            </>
+          }
+        />
 
-        
-        </>} />
+        <Route path="/product-detail" element={<ProductDetails />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/category" element={<CategoryPage />} />
+        <Route path="/wishlist" element={<Wishlist />} />
 
-         <Route path="/product-detail" element={<ProductDetails/>} />
-
-           <Route path="/cart" element={<Cart/>} />
-
-            <Route path="/checkout" element={<Checkout/>} />
-
-             <Route path="/category" element={<CategoryPage/>} />
-
-            <Route path="/wishlist" element={<Wishlist/>} />
-
-        <Route path="/product-dashboard" element={<ProductDashboard/>} />
-         <Route path="/category-dashboard" element={<CategoryDashboard/>} />
-         <Route path="/banner-dashboard" element={<BannerDashboard/>} />
+        <Route path="/product-dashboard" element={<ProductDashboard />} />
+        <Route path="/category-dashboard" element={<CategoryDashboard />} />
+        <Route path="/banner-dashboard" element={<BannerDashboard />} />
       </Routes>
-       <Footer/>
-    </BrowserRouter>
+
+      {!isDashboard && <Footer />}
+    </>
   );
 }
 
-export default App;
+export default function Root() {
+  return (
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
+}
