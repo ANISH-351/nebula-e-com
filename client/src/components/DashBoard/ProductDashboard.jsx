@@ -25,7 +25,7 @@ import {
   MdViewCarousel
 } from "react-icons/md";
 
-const BASE = "http://localhost:5000";
+const BASE = "https://nebula-bakend.onrender.com";
 
 export default function ProductDashboard() {
   const [page, setPage]                         = useState("list");        

@@ -7,7 +7,7 @@ import {
   MdImage,MdViewCarousel
 } from "react-icons/md";
 
-const BASE = "http://localhost:5000";
+const BASE = "https://nebula-bakend.onrender.com";
 
 export default function CategoryDashboard() {
   const [categories, setCategories] = useState([]);
