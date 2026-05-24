@@ -2,32 +2,31 @@ const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
 
+// ADD BANNER
+exports.addBanner = (req, res) => {
 
-// ADD CATEGORY
-exports.addCategory = (req, res) => {
-
-    const { name } = req.body;
+    const { title } = req.body;
 
     const image = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
     db.query(
-        'INSERT INTO category (name, image) VALUES (?, ?)',
-        [name, image],
+        'INSERT INTO banner (title, image) VALUES (?, ?)',
+        [title, image],
         (err) => {
 
             if (err) return res.status(500).send(err);
 
-            res.send('Category added');
+            res.send('Banner added');
         }
     );
 };
 
 
-// GET CATEGORY
-exports.getCategory = (req, res) => {
+// GET BANNERS
+exports.getBanners = (req, res) => {
 
     db.query(
-        'SELECT * FROM category',
+        'SELECT * FROM banner',
         (err, result) => {
 
             if (err) return res.status(500).send(err);
@@ -38,12 +37,12 @@ exports.getCategory = (req, res) => {
 };
 
 
-// UPDATE CATEGORY
-exports.updateCategory = (req, res) => {
+// UPDATE BANNER
+exports.updateBanner = (req, res) => {
 
     const id = req.params.id;
 
-    const { name } = req.body;
+    const { title } = req.body;
 
     let image;
 
@@ -57,62 +56,57 @@ exports.updateCategory = (req, res) => {
     if (image) {
 
         query = `
-            UPDATE category
-            SET name = ?, image = ?
+            UPDATE banner
+            SET title = ?, image = ?
             WHERE id = ?
         `;
 
-        values = [name, image, id];
+        values = [title, image, id];
 
     } else {
 
         query = `
-            UPDATE category
-            SET name = ?
+            UPDATE banner
+            SET title = ?
             WHERE id = ?
         `;
 
-        values = [name, id];
+        values = [title, id];
     }
 
     db.query(query, values, (err) => {
 
         if (err) return res.status(500).send(err);
 
-        res.send('Category updated');
+        res.send('Banner updated');
     });
 };
 
 
-// DELETE CATEGORY
-exports.deleteCategory = (req, res) => {
+// DELETE BANNER
+exports.deleteBanner = (req, res) => {
 
     const id = req.params.id;
 
     db.query(
-        'SELECT image FROM category WHERE id = ?',
+        'SELECT image FROM banner WHERE id=?',
         [id],
         (err, result) => {
 
             if (err) return res.status(500).send(err);
 
             if (result.length === 0) {
-                return res.send('Category not found');
+                return res.send('Banner not found');
             }
 
             const image = result[0].image;
 
             const fileName = image.split('/uploads/')[1];
 
-            const imagePath = path.join(
-                __dirname,
-                '..',
-                'uploads',
-                fileName
-            );
+            const imagePath = path.join(__dirname, '..', 'uploads', fileName);
 
             db.query(
-                'DELETE FROM category WHERE id = ?',
+                'DELETE FROM banner WHERE id=?',
                 [id],
                 (err) => {
 
@@ -121,11 +115,11 @@ exports.deleteCategory = (req, res) => {
                     fs.unlink(imagePath, (err) => {
 
                         if (err) {
-                            console.log(err);
+                            console.log('Image delete error:', err);
                         }
                     });
 
-                    res.send('Category deleted');
+                    res.send('Banner deleted');
                 }
             );
         }

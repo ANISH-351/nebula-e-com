@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import {
   MdGridView, MdInventory2, MdReceiptLong, MdPeople,
   MdBarChart, MdAdd, MdDelete, MdCategory, MdEdit, MdCheck, MdClose,
+  MdImage,MdViewCarousel
 } from "react-icons/md";
 
 const BASE = "http://localhost:5000";
@@ -13,10 +14,17 @@ export default function CategoryDashboard() {
   const [loadingCats, setLoadingCats] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [newCatImage, setNewCatImage] = useState(null);       // File object
+  const [newCatPreview, setNewCatPreview] = useState(null);   // Object URL
 
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
+  const [editImage, setEditImage] = useState(null);           // File object
+  const [editPreview, setEditPreview] = useState(null);       // current/new preview URL
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const addFileRef  = useRef(null);
+  const editFileRef = useRef(null);
 
   const fetchCategories = () => {
     setLoadingCats(true);
@@ -29,29 +37,73 @@ export default function CategoryDashboard() {
 
   useEffect(() => { fetchCategories(); }, []);
 
-  const handleAddCategory = async () => {
-    if (!newCatName.trim()) return alert("Category name is required");
-    try {
-      setSaving(true);
-      await axios.post(`${BASE}/addcategory`, { name: newCatName });
-      setNewCatName("");
-      fetchCategories();
-    } catch { alert("Error adding category."); }
-    finally { setSaving(false); }
+  /* ── Add image picker ── */
+  const onNewImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setNewCatImage(file);
+    setNewCatPreview(URL.createObjectURL(file));
   };
 
-  const startEdit = (cat) => { setEditingId(cat.id); setEditName(cat.name); };
-  const cancelEdit = () => { setEditingId(null); setEditName(""); };
+  const clearNewImage = () => {
+    setNewCatImage(null);
+    setNewCatPreview(null);
+    if (addFileRef.current) addFileRef.current.value = "";
+  };
 
+  /* ── Add category ── */
+  const handleAddCategory = async () => {
+    if (!newCatName.trim()) return alert("Category name is required");
+    if (!newCatImage)       return alert("Category image is required");
+    try {
+      setSaving(true);
+      const fd = new FormData();
+      fd.append("name",  newCatName);
+      fd.append("image", newCatImage);
+      await axios.post(`${BASE}/addcategory`, fd);
+      setNewCatName("");
+      clearNewImage();
+      fetchCategories();
+    } catch { alert("Error adding category."); }
+    finally  { setSaving(false); }
+  };
+
+  /* ── Edit helpers ── */
+  const startEdit = (cat) => {
+    setEditingId(cat.id);
+    setEditName(cat.name);
+    setEditImage(null);
+    setEditPreview(cat.image || null);
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName("");
+    setEditImage(null);
+    setEditPreview(null);
+    if (editFileRef.current) editFileRef.current.value = "";
+  };
+
+  const onEditImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setEditImage(file);
+    setEditPreview(URL.createObjectURL(file));
+  };
+
+  /* ── Update ── */
   const handleUpdate = async (id) => {
     if (!editName.trim()) return alert("Name cannot be empty");
     try {
-      await axios.put(`${BASE}/category/${id}`, { name: editName });
+      const fd = new FormData();
+      fd.append("name", editName);
+      if (editImage) fd.append("image", editImage);
+      await axios.put(`${BASE}/category/${id}`, fd);
       cancelEdit();
       fetchCategories();
     } catch { alert("Error updating category."); }
   };
 
+  /* ── Delete ── */
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
@@ -63,7 +115,8 @@ export default function CategoryDashboard() {
 
   const navItems = [
     { label: "Overview",   icon: <MdGridView size={17} />,    key: "overview",    to: null },
-     { label: "Categories", icon: <MdCategory size={17} />,    key: "categories",  to: null },
+     { label: "Banners",    icon: <MdViewCarousel size={17} />,   key: "banners",    to: "/banner-dashboard" },
+    { label: "Categories", icon: <MdCategory size={17} />,    key: "categories",  to: null },
     { label: "Products",   icon: <MdInventory2 size={17} />,  key: "products",    to: "/product-dashboard" },
     { label: "Orders",     icon: <MdReceiptLong size={17} />, key: "orders",      to: null },
     { label: "Customers",  icon: <MdPeople size={17} />,      key: "customers",   to: null },
@@ -94,7 +147,6 @@ export default function CategoryDashboard() {
                 <span>{item.label}</span>
               </div>
             );
-
             return item.to ? (
               <Link key={item.key} to={item.to} className="block">{inner}</Link>
             ) : (
@@ -121,6 +173,8 @@ export default function CategoryDashboard() {
               <p className="text-sm font-bold text-gray-800">Add New Category</p>
             </div>
             <div className="p-6 flex flex-col gap-5">
+
+              {/* Name */}
               <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
                   Category Name
@@ -134,9 +188,51 @@ export default function CategoryDashboard() {
                   className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-900 outline-none focus:border-lime-400 focus:bg-white focus:ring-2 focus:ring-lime-100 transition-all placeholder:text-gray-400"
                 />
               </div>
+
+              {/* Image upload */}
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                  Category Image
+                </label>
+
+                {newCatPreview ? (
+                  <div className="relative w-full h-36 rounded-xl overflow-hidden border border-gray-200">
+                    <img
+                      src={newCatPreview}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      onClick={clearNewImage}
+                      className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                      title="Remove image"
+                    >
+                      <MdClose size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => addFileRef.current?.click()}
+                    className="w-full h-36 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:border-lime-400 hover:bg-lime-50/30 transition-all cursor-pointer text-gray-400 hover:text-lime-500"
+                  >
+                    <MdImage size={28} />
+                    <span className="text-xs font-medium">Click to upload image</span>
+                    <span className="text-[10px] text-gray-400">PNG, JPG, WEBP</span>
+                  </button>
+                )}
+
+                <input
+                  ref={addFileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={onNewImageChange}
+                  className="hidden"
+                />
+              </div>
+
               <button
                 onClick={handleAddCategory}
-                disabled={saving || !newCatName.trim()}
+                disabled={saving || !newCatName.trim() || !newCatImage}
                 className="w-full py-3 text-xs font-bold bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving ? "Creating..." : <><MdAdd size={16} /> Create Category</>}
@@ -156,6 +252,7 @@ export default function CategoryDashboard() {
                 <thead>
                   <tr className="bg-gray-50 text-left">
                     <th className="px-6 py-3 text-xs font-medium text-gray-500 border-b border-gray-100">ID</th>
+                    <th className="px-6 py-3 text-xs font-medium text-gray-500 border-b border-gray-100">Image</th>
                     <th className="px-6 py-3 text-xs font-medium text-gray-500 border-b border-gray-100">Name</th>
                     <th className="px-6 py-3 text-xs font-medium text-gray-500 border-b border-gray-100 text-right">Actions</th>
                   </tr>
@@ -163,17 +260,60 @@ export default function CategoryDashboard() {
                 <tbody className="divide-y divide-gray-50">
                   {loadingCats ? (
                     <tr>
-                      <td colSpan="3" className="text-center py-20 text-gray-500 italic">Loading categories...</td>
+                      <td colSpan="4" className="text-center py-20 text-gray-500 italic">Loading categories...</td>
                     </tr>
                   ) : categories.length === 0 ? (
                     <tr>
-                      <td colSpan="3" className="text-center py-20 text-gray-500 italic">No categories created yet.</td>
+                      <td colSpan="4" className="text-center py-20 text-gray-500 italic">No categories created yet.</td>
                     </tr>
                   ) : (
                     categories.map((cat) => (
                       <tr key={cat.id} className="hover:bg-gray-50/50 transition-colors">
+
+                        {/* ID */}
                         <td className="px-6 py-4 font-mono text-xs text-gray-500">#{cat.id}</td>
 
+                        {/* Image cell */}
+                        <td className="px-6 py-4">
+                          {editingId === cat.id ? (
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0 bg-gray-100 flex items-center justify-center">
+                                {editPreview ? (
+                                  <img src={editPreview} alt="preview" className="w-full h-full object-cover" />
+                                ) : (
+                                  <MdImage size={18} className="text-gray-300" />
+                                )}
+                              </div>
+                              <button
+                                onClick={() => editFileRef.current?.click()}
+                                className="text-xs px-2.5 py-1.5 rounded-lg border border-dashed border-gray-300 text-gray-500 hover:border-lime-400 hover:text-lime-600 hover:bg-lime-50/30 transition-all whitespace-nowrap"
+                              >
+                                {editImage ? "Change" : "Replace"}
+                              </button>
+                              <input
+                                ref={editFileRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={onEditImageChange}
+                                className="hidden"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+                              {cat.image ? (
+                                <img
+                                  src={cat.image}
+                                  alt={cat.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <MdImage size={18} className="text-gray-300" />
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Name */}
                         <td className="px-6 py-4">
                           {editingId === cat.id ? (
                             <input
@@ -181,7 +321,7 @@ export default function CategoryDashboard() {
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") handleUpdate(cat.id);
+                                if (e.key === "Enter")  handleUpdate(cat.id);
                                 if (e.key === "Escape") cancelEdit();
                               }}
                               className="px-3 py-1.5 text-sm border border-lime-400 rounded-lg bg-white text-gray-900 outline-none focus:ring-2 focus:ring-lime-100 w-48"
@@ -191,7 +331,7 @@ export default function CategoryDashboard() {
                           )}
                         </td>
 
-                        {/* Always-visible colored action buttons */}
+                        {/* Actions */}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {editingId === cat.id ? (
@@ -231,6 +371,7 @@ export default function CategoryDashboard() {
                             )}
                           </div>
                         </td>
+
                       </tr>
                     ))
                   )}

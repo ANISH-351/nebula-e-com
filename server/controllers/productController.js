@@ -104,3 +104,76 @@ exports.deleteProduct = (req, res) => {
         });
     });
 };
+
+
+exports.getFeaturedProducts = (req, res) => {
+
+    db.query(
+        'SELECT * FROM product WHERE featured = 1',
+        (err, result) => {
+
+            if (err) return res.status(500).send(err);
+
+            res.json(result);
+        }
+    );
+};
+
+
+
+// MAKE FEATURED
+exports.makeFeatured = (req, res) => {
+
+    const id = req.params.id;
+
+    db.query(
+        'UPDATE product SET featured = 1 WHERE id = ?',
+        [id],
+        (err) => {
+
+            if (err) return res.status(500).send(err);
+
+            res.send('Product marked as featured');
+        }
+    );
+};
+
+
+
+// GET NEW ARRIVALS
+exports.getNewArrivals = (req, res) => {
+
+    db.query(
+        `SELECT * FROM product
+         ORDER BY created_at DESC
+         LIMIT 10`,
+        (err, result) => {
+
+            if (err) return res.status(500).send(err);
+
+            res.json(result);
+        }
+    );
+};
+
+
+exports.getRelatedProducts = (req, res) => {
+
+    const { id, category_id } = req.params;
+
+    db.query(
+        `
+        SELECT *
+        FROM product
+        WHERE category_id = ?
+        AND id != ?
+        `,
+        [category_id, id],
+        (err, result) => {
+
+            if (err) return res.status(500).send(err);
+
+            res.json(result);
+        }
+    );
+};
