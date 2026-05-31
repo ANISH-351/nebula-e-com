@@ -751,7 +751,7 @@ export default function ProductDashboard() {
                       <img src={preview} alt="preview" className="w-auto h-50 object-cover rounded-xl border border-gray-200" />
                       <button
                         onClick={clearImage}
-                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+                        className="absolute top-2 left-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
                       >
                         <MdClose size={14} />
                       </button>

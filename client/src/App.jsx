@@ -18,6 +18,9 @@ import Cart from './components/Cart/Cart';
 import Checkout from './components/Checkout/Checkout';
 import CategoryPage from './components/Category/CategoryPage';
 import Wishlist from './components/Wishlist/Wishlist';
+import Profile from './components/Profile/Profile';
+import Address from './components/Profile/Address';
+import ChangePassword from './components/Profile/ChangePassword';
 
 import ScrollToTop from './components/ScrollToTop';
 
@@ -53,10 +56,14 @@ function App() {
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/category" element={<CategoryPage />} />
         <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/profile" element={<Profile />} />
+        <Route path="/address" element={<Address />} />
+        <Route path="/change-password" element={<ChangePassword />} />
 
         <Route path="/product-dashboard" element={<ProductDashboard />} />
         <Route path="/category-dashboard" element={<CategoryDashboard />} />
         <Route path="/banner-dashboard" element={<BannerDashboard />} />
+      
       </Routes>
 
       {!isDashboard && <Footer />}
