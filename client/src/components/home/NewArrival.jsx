@@ -269,8 +269,8 @@ function NewArrival() {
         {/* <div className="mt-8 flex justify-center md:hidden">
           <button className="border border-[#d9c4a0] text-[#b89552] px-6 py-3 rounded-full hover:bg-[#faf7f2] transition">
             View All
-          </button> */}
-        </div>
+          </button>
+        </div> */}
 
       </div>
     </section>
