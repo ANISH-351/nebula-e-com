@@ -6,8 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { api } from "../../components/const";
-import { addToCart } from "../../components/features/cartSlice";
-import { addToWishlist, removeFromWishlist } from "../../components/features/wishlistSlice";
+import { addToCart, fetchCart, increaseQuantity, decreaseQuantity } from "../../components/features/cartSlice";
+import { addToWishlist, removeFromWishlist, fetchWishlist } from "../../components/features/wishlistSlice";
 
 import "swiper/css";
 
@@ -22,10 +22,11 @@ function FeaturedProducts() {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cartAnimating, setCartAnimating] = useState(null); // product_id being animated
+  const [cartAnimating, setCartAnimating] = useState(null);
 
   useEffect(() => {
-    axios.get(`${api}/featuredProducts`)
+    axios
+      .get(`${api}/featuredProducts`)
       .then((res) => setProducts(res.data))
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
@@ -34,28 +35,39 @@ function FeaturedProducts() {
   const isInWishlist = (product_id) =>
     wishlistItems.some((w) => w.product_id === product_id);
 
-  const isInCart = (product_id) =>
-    cartItems.some((c) => c.product_id === product_id);
+  // Returns the cart item object (or undefined) for a given product_id
+  const getCartItem = (product_id) =>
+    cartItems.find((c) => c.product_id === product_id);
 
   const handleWishlist = (e, product_id) => {
     e.stopPropagation();
     if (isInWishlist(product_id)) {
       const item = wishlistItems.find((w) => w.product_id === product_id);
-      dispatch(removeFromWishlist(item.id));
+      dispatch(removeFromWishlist(item.id)).then(() => dispatch(fetchWishlist(user_id)));
     } else {
-      dispatch(addToWishlist({ user_id, product_id }));
+      dispatch(addToWishlist({ user_id, product_id })).then(() => dispatch(fetchWishlist(user_id)));
     }
   };
 
-  const handleCart = (e, product_id) => {
+  const handleAddToCart = (e, product_id) => {
     e.stopPropagation();
-    if (isInCart(product_id)) {
-      navigate("/cart");
-      return;
-    }
-    dispatch(addToCart({ user_id, product_id }));
-    setCartAnimating(product_id);
-    setTimeout(() => setCartAnimating(null), 800);
+    dispatch(addToCart({ user_id, product_id })).then(() => {
+      dispatch(fetchCart(user_id));
+      setCartAnimating(product_id);
+      setTimeout(() => setCartAnimating(null), 800);
+    });
+  };
+
+  // Uses the cart row's `id` (not product_id) to hit PUT /increaseQuantity/:id
+  const handleIncrease = (e, cartItemId) => {
+    e.stopPropagation();
+    dispatch(increaseQuantity(cartItemId)).then(() => dispatch(fetchCart(user_id)));
+  };
+
+  // Uses the cart row's `id` — if qty is 1, decreasing removes the item (handled in slice/backend)
+  const handleDecrease = (e, cartItemId) => {
+    e.stopPropagation();
+    dispatch(decreaseQuantity(cartItemId)).then(() => dispatch(fetchCart(user_id)));
   };
 
   return (
@@ -75,6 +87,115 @@ function FeaturedProducts() {
         }
         .heart-pop { animation: heartPop 0.4s ease forwards; }
         .cart-bounce { animation: cartBounce 0.5s ease forwards; }
+
+        /* Cart controls bar — hidden by default, shown on hover or when in cart */
+        .cart-controls-overlay {
+          position: absolute;
+          bottom: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          white-space: nowrap;
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        /* When NOT in cart: hide until hover */
+        .not-in-cart .cart-controls-overlay {
+          opacity: 0;
+          transform: translateX(-50%) translateY(8px);
+        }
+        .not-in-cart:hover .cart-controls-overlay {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+        /* When IN cart: always visible */
+        .in-cart .cart-controls-overlay {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+
+        /* Quantity pill */
+        .qty-pill {
+          display: flex;
+          align-items: center;
+          gap: 0;
+          background: white;
+          border-radius: 9999px;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+          overflow: hidden;
+        }
+        .qty-btn {
+          width: 36px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          font-weight: 500;
+          color: #b89552;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+          line-height: 1;
+        }
+        .qty-btn:hover { background: #faf7f2; }
+        .qty-value {
+          min-width: 28px;
+          text-align: center;
+          font-size: 15px;
+          font-weight: 600;
+          color: #1a1a1a;
+        }
+
+        /* Go To Cart pill */
+        .go-to-cart-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: white;
+          background: #1a1a1a;
+          padding: 10px 18px;
+          border-radius: 9999px;
+          font-size: 14px;
+          font-weight: 500;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+          white-space: nowrap;
+        }
+        .go-to-cart-btn:hover { background: #000; }
+
+        /* Add To Cart pill (before adding) */
+        .add-to-cart-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: white;
+          background: #c5a46d;
+          padding: 10px 20px;
+          border-radius: 9999px;
+          font-size: 14px;
+          font-weight: 500;
+          box-shadow: 0 4px 14px rgba(197,164,109,0.35);
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+          white-space: nowrap;
+        }
+        .add-to-cart-btn:hover { background: #b89552; }
+
+        /* ── Mobile cart controls: shown BELOW image+name+price ── */
+        .mobile-cart-row {
+          display: none;
+        }
+        @media (max-width: 639px) {
+          /* Hide overlay on mobile */
+          .cart-controls-overlay { display: none !important; }
+          .mobile-cart-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+        }
       `}</style>
 
       <section className="w-full py-16 bg-white">
@@ -112,7 +233,8 @@ function FeaturedProducts() {
             >
               {products.map((product) => {
                 const inWishlist = isInWishlist(product.id);
-                const inCart = isInCart(product.id);
+                const cartItem = getCartItem(product.id);
+                const inCart = !!cartItem;
 
                 return (
                   <SwiperSlide key={product.id}>
@@ -120,24 +242,18 @@ function FeaturedProducts() {
                       onClick={() => navigate(`/product-detail/${product.id}`)}
                       className="group cursor-pointer"
                     >
-                      <div className="relative overflow-hidden rounded-[30px] bg-[#faf7f2]">
+                      {/* Image card */}
+                      <div className={`relative overflow-hidden rounded-[30px] bg-[#faf7f2] ${inCart ? "in-cart" : "not-in-cart"}`}>
 
                         {/* Wishlist Button */}
                         <button
                           onClick={(e) => handleWishlist(e, product.id)}
-                          className={`absolute top-4 right-4 z-10 w-11 h-11 rounded-full flex items-center justify-center shadow-md transition-all duration-300
-                            ${inWishlist
-                              ? "bg-[#c5a46d] text-white scale-110"
-                              : "bg-white text-[#b89552] hover:bg-[#c5a46d] hover:text-white hover:scale-110"
-                            }`}
+                          className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-md transition-all duration-300 hover:scale-110"
                         >
                           <FaHeart
                             size={18}
                             className={inWishlist ? "heart-pop" : ""}
-                            style={{
-                              transition: "color 0.3s, transform 0.3s",
-                              color: inWishlist ? "white" : "#b89552",
-                            }}
+                            style={{ color: inWishlist ? "#c5a46d" : "#d4bfa0", transition: "color 0.3s" }}
                           />
                         </button>
 
@@ -150,26 +266,45 @@ function FeaturedProducts() {
                           />
                         </div>
 
-                        {/* Add To Cart / Go To Cart */}
-                        <div
-                          className={`absolute bottom-4 left-1/2 -translate-x-1/2 transition-all duration-300
-                            ${inCart
-                              ? "opacity-100 translate-y-0"
-                              : "opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
-                            }`}
-                        >
-                          <button
-                            onClick={(e) => handleCart(e, product.id)}
-                            className={`flex items-center gap-2 text-white px-6 py-3 rounded-full shadow-lg whitespace-nowrap transition-all duration-300
-                              ${cartAnimating === product.id ? "cart-bounce" : ""}
-                              ${inCart
-                                ? "bg-gray-800 hover:bg-black"
-                                : "bg-[#c5a46d] hover:bg-[#b89552]"
-                              }`}
-                          >
-                            <FiShoppingCart />
-                            {inCart ? "Go To Cart →" : "Add To Cart"}
-                          </button>
+                        {/* ── Desktop/Tablet overlay controls ── */}
+                        <div className={`cart-controls-overlay ${cartAnimating === product.id ? "cart-bounce" : ""}`}>
+                          {inCart ? (
+                            <>
+                              {/* Go To Cart — left pill */}
+                              <button
+                                className="go-to-cart-btn"
+                                onClick={(e) => { e.stopPropagation(); navigate("/cart"); }}
+                              >
+                                <FiShoppingCart size={15} />
+                                Go To Cart
+                              </button>
+
+                              {/* Quantity — right pill */}
+                              <div className="qty-pill" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  className="qty-btn"
+                                  onClick={(e) => handleDecrease(e, cartItem.id)}
+                                >
+                                  −
+                                </button>
+                                <span className="qty-value">{cartItem.quantity}</span>
+                                <button
+                                  className="qty-btn"
+                                  onClick={(e) => handleIncrease(e, cartItem.id)}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <button
+                              className="add-to-cart-btn"
+                              onClick={(e) => handleAddToCart(e, product.id)}
+                            >
+                              <FiShoppingCart size={15} />
+                              Add To Cart
+                            </button>
+                          )}
                         </div>
 
                       </div>
@@ -184,6 +319,36 @@ function FeaturedProducts() {
                         </p>
                       </div>
 
+                      {/* ── Mobile-only controls below name & price ── */}
+                      <div className="mobile-cart-row" onClick={(e) => e.stopPropagation()}>
+                        {inCart ? (
+                          <>
+                            <button
+                              className="go-to-cart-btn"
+                              style={{ fontSize: "13px", padding: "8px 14px" }}
+                              onClick={(e) => { e.stopPropagation(); navigate("/cart"); }}
+                            >
+                              <FiShoppingCart size={13} />
+                              Go To Cart
+                            </button>
+                            <div className="qty-pill">
+                              <button className="qty-btn" onClick={(e) => handleDecrease(e, cartItem.id)}>−</button>
+                              <span className="qty-value">{cartItem.quantity}</span>
+                              <button className="qty-btn" onClick={(e) => handleIncrease(e, cartItem.id)}>+</button>
+                            </div>
+                          </>
+                        ) : (
+                          <button
+                            className="add-to-cart-btn"
+                            style={{ fontSize: "13px", padding: "8px 16px", width: "100%" }}
+                            onClick={(e) => handleAddToCart(e, product.id)}
+                          >
+                            <FiShoppingCart size={13} />
+                            Add To Cart
+                          </button>
+                        )}
+                      </div>
+
                     </div>
                   </SwiperSlide>
                 );
@@ -191,7 +356,7 @@ function FeaturedProducts() {
             </Swiper>
           )}
 
-          {/* Mobile Button */}
+          {/* Mobile View All Button */}
           <div className="mt-8 flex justify-center md:hidden">
             <button className="border border-[#d9c4a0] text-[#b89552] px-6 py-3 rounded-full hover:bg-[#faf7f2] transition">
               View All
