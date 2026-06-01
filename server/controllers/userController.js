@@ -6,15 +6,26 @@ exports.signup = (req, res) => {
     const { name, email, password } = req.body;
 
     db.query(
-        'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-        [name, email, password],
+        'SELECT id FROM users WHERE email = ?',
+        [email],
         (err, result) => {
-            if (err) {
-                console.log(err);
-                return res.status(500).send('Error in signup');
-            } else {
-                res.send('Signup successful');
+
+            if (err) return res.status(500).send(err);
+
+            if (result.length > 0) {
+                return res.status(409).send('Email already exists');
             }
+
+            db.query(
+                'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
+                [name, email, password],
+                (err) => {
+
+                    if (err) return res.status(500).send(err);
+
+                    res.send('Signup successful');
+                }
+            );
         }
     );
 };
@@ -38,7 +49,10 @@ exports.login = (req, res) => {
                 return res.status(401).send('Invalid credentials');
             }
 
-            res.send('Login successful');
+            res.json({
+    message: 'Login successful',
+    user: result[0]
+});
         }
     );
 };
