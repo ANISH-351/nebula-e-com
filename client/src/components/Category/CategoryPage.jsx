@@ -62,7 +62,7 @@ function CategoryPage() {
   ];
 
   return (
-    <section className="w-full bg-white min-h-screen py-10 lg:py-16">
+    <section className="w-full bg-white min-h-screen pt-10 lg:pt-16">
       
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         
