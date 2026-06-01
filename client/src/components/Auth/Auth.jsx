@@ -27,6 +27,7 @@ export function Login() {
     axios.post(`${api}/login`, form)
       .then((res) => {
         localStorage.setItem("user", JSON.stringify(res.data.user));
+        localStorage.setItem("user_id", res.data.user.id);
         navigate("/");
       })
       .catch((err) => {
