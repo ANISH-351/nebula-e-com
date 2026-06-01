@@ -81,9 +81,9 @@ function NewArrival() {
               New Arrivals
             </h2>
           </div>
-          <button className="hidden md:block border border-[#d9c4a0] text-[#b89552] px-6 py-3 rounded-full hover:bg-[#faf7f2] transition">
+          {/* <button className="hidden md:block border border-[#d9c4a0] text-[#b89552] px-6 py-3 rounded-full hover:bg-[#faf7f2] transition">
             View All
-          </button>
+          </button> */}
         </div>
 
         {/* Skeleton Loader */}
@@ -266,10 +266,10 @@ function NewArrival() {
         )}
 
         {/* Mobile View All */}
-        <div className="mt-8 flex justify-center md:hidden">
+        {/* <div className="mt-8 flex justify-center md:hidden">
           <button className="border border-[#d9c4a0] text-[#b89552] px-6 py-3 rounded-full hover:bg-[#faf7f2] transition">
             View All
-          </button>
+          </button> */}
         </div>
 
       </div>
