@@ -191,3 +191,42 @@ exports.searchProducts = (req, res) => {
         }
     );
 };
+
+
+// GET SINGLE PRODUCT DETAILS
+exports.getProductDetails = (req, res) => {
+
+    const id = req.params.id;
+
+    db.query(
+        `
+        SELECT
+            product.id,
+            product.name,
+            product.price,
+            product.image,
+            product.description,
+            product.category_id,
+            category.name AS category_name
+        FROM product
+        LEFT JOIN category
+        ON product.category_id = category.id
+        WHERE product.id = ?
+        `,
+        [id],
+        (err, result) => {
+
+            if (err) {
+                return res.status(500).send(err);
+            }
+
+            if (result.length === 0) {
+                return res.status(404).json({
+                    message: "Product not found"
+                });
+            }
+
+            res.json(result[0]);
+        }
+    );
+};

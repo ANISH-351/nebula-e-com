@@ -13,6 +13,7 @@ router.get('/featuredProducts', productController.getFeaturedProducts);
 router.put('/makeFeatured/:id', productController.makeFeatured);
 router.get('/newArrivals', productController.getNewArrivals);
 router.get('/relatedProducts/:id/:category_id', productController.getRelatedProducts);
+router.get('/product_details/:id', productController.getProductDetails);
 
 
 

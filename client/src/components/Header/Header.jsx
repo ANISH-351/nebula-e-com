@@ -74,7 +74,7 @@ const Header = () => {
   const handleProductClick = (id) => {
     setShowDropdown(false);
     setKeyword("");
-    navigate(`/product/${id}`);
+    navigate(`/product-detail/${id}`);
   };
 
   const SearchBox = ({ mobile }) => (

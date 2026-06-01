@@ -32,17 +32,21 @@ function ProductDetails() {
   const [selectedSize, setSelectedSize] = useState("M");
   const [cartAnimating, setCartAnimating] = useState(false);
 
-  useEffect(() => {
-    axios.get(`${api}/product/${id}`)
-      .then((res) => {
-        // endpoint returns array, get first item
-        const data = Array.isArray(res.data) ? res.data[0] : res.data;
-        setProduct(data);
-        setMainImage(data.image);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, [id]);
+useEffect(() => {
+  axios.get(`${api}/product_details/${id}`)
+    .then((res) => {
+      const data = Array.isArray(res.data) ? res.data[0] : res.data;
+      if (!data) {
+        console.warn("Product not found for id:", id);
+        setLoading(false);
+        return;
+      }
+      setProduct(data);
+      setMainImage(data.image);
+    })
+    .catch((err) => console.error(err))
+    .finally(() => setLoading(false));
+}, [id]);
 
   const isInWishlist = wishlistItems.some((w) => w.product_id === Number(id));
   const cartItem = cartItems.find((c) => c.product_id === Number(id));
