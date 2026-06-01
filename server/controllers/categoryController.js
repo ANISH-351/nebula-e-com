@@ -83,10 +83,7 @@ exports.updateCategory = (req, res) => {
     });
 };
 
-
-// DELETE CATEGORY
 exports.deleteCategory = (req, res) => {
-
     const id = req.params.id;
 
     db.query(
@@ -94,38 +91,54 @@ exports.deleteCategory = (req, res) => {
         [id],
         (err, result) => {
 
-            if (err) return res.status(500).send(err);
+            if (err) {
+                return res.status(500).json(err);
+            }
 
             if (result.length === 0) {
-                return res.send('Category not found');
+                return res.status(404).json({
+                    message: 'Category not found'
+                });
             }
 
             const image = result[0].image;
-
-            const fileName = image.split('/uploads/')[1];
-
-            const imagePath = path.join(
-                __dirname,
-                '..',
-                'uploads',
-                fileName
-            );
 
             db.query(
                 'DELETE FROM category WHERE id = ?',
                 [id],
                 (err) => {
 
-                    if (err) return res.status(500).send(err);
+                    if (err) {
+                        return res.status(500).json(err);
+                    }
 
-                    fs.unlink(imagePath, (err) => {
+                    // delete image only if it exists
+                    if (image && image.includes('/uploads/')) {
 
-                        if (err) {
-                            console.log(err);
-                        }
+                        const fileName =
+                            image.split('/uploads/')[1];
+
+                        const imagePath = path.join(
+                            __dirname,
+                            '..',
+                            'uploads',
+                            fileName
+                        );
+
+                        fs.unlink(imagePath, (err) => {
+                            if (err) {
+                                console.log(
+                                    'Image delete error:',
+                                    err.message
+                                );
+                            }
+                        });
+                    }
+
+                    res.status(200).json({
+                        success: true,
+                        message: 'Category deleted'
                     });
-
-                    res.send('Category deleted');
                 }
             );
         }
