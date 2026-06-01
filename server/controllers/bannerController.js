@@ -7,7 +7,7 @@ exports.addBanner = (req, res) => {
 
     const { title } = req.body;
 
-    const image = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const image = req.file.path;
 
     db.query(
         'INSERT INTO banner (title, image) VALUES (?, ?)',
@@ -47,7 +47,7 @@ exports.updateBanner = (req, res) => {
     let image;
 
     if (req.file) {
-        image = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+        image = req.file.path;
     }
 
     let query;

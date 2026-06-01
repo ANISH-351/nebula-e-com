@@ -5,7 +5,7 @@ const path = require('path');
 // ADD PRODUCT
 exports.addProduct = (req, res) => {
     const { name, price, description, category_id } = req.body;
-    const image = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const image = req.file.path;
 
     db.query(
         'INSERT INTO product (name, price, image, description,  category_id) VALUES (?, ?, ?, ?, ?)',
@@ -56,10 +56,11 @@ exports.updateProduct = (req, res) => {
     const id = req.params.id;
     const { name, price, description, category_id } = req.body;
 
-    let image;
-    if (req.file) {
-        const image = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-    }
+   let image;
+
+if (req.file) {
+    image = req.file.path;
+}
 
     let query, values;
 
@@ -89,22 +90,16 @@ exports.updateProduct = (req, res) => {
 exports.deleteProduct = (req, res) => {
     const id = req.params.id;
 
-    db.query('SELECT image FROM product WHERE id=?', [id], (err, result) => {
-        if (err) return res.status(500).send(err);
-        if (result.length === 0) return res.send('Not found');
-
-        const image = result[0].image;
-        const imagePath = path.join(__dirname, '..', 'uploads', image);
-
-        db.query('DELETE FROM product WHERE id=?', [id], (err) => {
+    db.query(
+        'DELETE FROM product WHERE id=?',
+        [id],
+        (err) => {
             if (err) return res.status(500).send(err);
 
-            fs.unlink(imagePath, () => {});
             res.send('Deleted');
-        });
-    });
-};
-
+        }
+    );
+};  
 
 exports.getFeaturedProducts = (req, res) => {
 
