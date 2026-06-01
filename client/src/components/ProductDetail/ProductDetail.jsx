@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { api } from "../../components/const";
-import { addToCart, fetchCart } from "../../components/features/cartSlice";
+import { addToCart, fetchCart, increaseQuantity, decreaseQuantity } from "../../components/features/cartSlice";
 import { addToWishlist, removeFromWishlist, fetchWishlist } from "../../components/features/wishlistSlice";
 
 const SIZES = ["XS", "S", "M", "L", "XL"];
@@ -20,7 +20,7 @@ function ProductDetails() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const user_id = 1;
+  const user_id = localStorage.getItem("user_id");
 
   const { wishlistItems } = useSelector((s) => s.wishlist);
   const { cartItems } = useSelector((s) => s.cart);
@@ -68,12 +68,20 @@ useEffect(() => {
       navigate("/cart");
       return;
     }
-    dispatch(addToCart({ user_id, product_id: Number(id) })).then(() => {
+    dispatch(addToCart({ user_id, product_id: Number(id), quantity })).then(() => {
       dispatch(fetchCart(user_id));
       setCartAnimating(true);
       setTimeout(() => setCartAnimating(false), 800);
     });
   };
+
+  const handleIncrease = () => {
+  dispatch(increaseQuantity(cartItem.id)).then(() => dispatch(fetchCart(user_id)));
+};
+
+const handleDecrease = () => {
+  dispatch(decreaseQuantity(cartItem.id)).then(() => dispatch(fetchCart(user_id)));
+};
 
   if (loading) {
     return (
@@ -214,58 +222,73 @@ useEffect(() => {
 
               <div className="my-5 h-px bg-gray-100" />
 
-              {/* Quantity + Add to Cart */}
-              <div className="flex flex-wrap items-center gap-3">
+            {/* Quantity + Add to Cart */}
+<div className="flex flex-wrap items-center gap-3">
 
-                {/* Quantity */}
-                <div className="flex items-center rounded-full border border-gray-200 overflow-hidden">
-                  <button
-                    onClick={() => quantity > 1 && setQuantity(quantity - 1)}
-                    className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
-                  >
-                    <FiMinus size={14} />
-                  </button>
-                  <span className="w-10 text-center text-sm font-semibold text-gray-800">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
-                  >
-                    <FiPlus size={14} />
-                  </button>
-                </div>
+  {/* Quantity — show +/- controls on cart item if already in cart */}
+  {inCart ? (
+    <div className="flex items-center rounded-full border border-gray-200 overflow-hidden">
+      <button
+        onClick={handleDecrease}
+        className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
+      >
+        <FiMinus size={14} />
+      </button>
+      <span className="w-10 text-center text-sm font-semibold text-gray-800">
+        {cartItem.quantity}
+      </span>
+      <button
+        onClick={handleIncrease}
+        className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
+      >
+        <FiPlus size={14} />
+      </button>
+    </div>
+  ) : (
+    <div className="flex items-center rounded-full border border-gray-200 overflow-hidden">
+      <button
+        onClick={() => quantity > 1 && setQuantity(quantity - 1)}
+        className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
+      >
+        <FiMinus size={14} />
+      </button>
+      <span className="w-10 text-center text-sm font-semibold text-gray-800">
+        {quantity}
+      </span>
+      <button
+        onClick={() => setQuantity(quantity + 1)}
+        className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
+      >
+        <FiPlus size={14} />
+      </button>
+    </div>
+  )}
 
-                {/* Add to cart / Go to cart */}
-                <button
-                  onClick={handleCart}
-                  className={`flex-1 min-w-[160px] flex items-center justify-center gap-2 text-white text-sm font-medium px-6 py-3.5 rounded-full transition-all
-                    ${cartAnimating ? "cart-bounce" : ""}
-                    bg-[#b89552] hover:bg-[#9e7f3e] active:scale-[0.98]`}
-                >
-                  <FiShoppingCart size={16} />
-                  {inCart ? "Go To Cart →" : "Add to Cart"}
-                </button>
+  {/* Add to cart / Go to cart */}
+  <button
+    onClick={handleCart}
+    className={`flex-1 min-w-[160px] flex items-center justify-center gap-2 text-white text-sm font-medium px-6 py-3.5 rounded-full transition-all
+      ${cartAnimating ? "cart-bounce" : ""}
+      bg-[#b89552] hover:bg-[#9e7f3e] active:scale-[0.98]`}
+  >
+    <FiShoppingCart size={16} />
+    {inCart ? "Go To Cart →" : "Add to Cart"}
+  </button>
 
-                {/* Wishlist button */}
-                <button
-                  onClick={handleWishlist}
-                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all hover:scale-110 ${
-                    isInWishlist
-                      ? "border-[#b89552] bg-amber-50"
-                      : "border-gray-200 hover:border-[#b89552]"
-                  }`}
-                >
-                  <FaHeart
-                    size={16}
-                    className={isInWishlist ? "heart-pop" : ""}
-                    style={{
-                      color: isInWishlist ? "#b89552" : "#d4bfa0",
-                      transition: "color 0.3s",
-                    }}
-                  />
-                </button>
-              </div>
+  {/* Wishlist button */}
+  <button
+    onClick={handleWishlist}
+    className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all hover:scale-110 ${
+      isInWishlist ? "border-[#b89552] bg-amber-50" : "border-gray-200 hover:border-[#b89552]"
+    }`}
+  >
+    <FaHeart
+      size={16}
+      className={isInWishlist ? "heart-pop" : ""}
+      style={{ color: isInWishlist ? "#b89552" : "#d4bfa0", transition: "color 0.3s" }}
+    />
+  </button>
+</div>
 
               {/* Cart qty indicator */}
               {inCart && (

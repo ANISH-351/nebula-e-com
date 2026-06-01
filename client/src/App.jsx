@@ -21,6 +21,7 @@ import Wishlist from './components/Wishlist/Wishlist';
 import Profile from './components/Profile/Profile';
 import Address from './components/Profile/Address';
 import ChangePassword from './components/Profile/ChangePassword';
+   import { Login, Signup } from "./components/Auth/Auth";
 
 import ScrollToTop from './components/ScrollToTop';
 
@@ -59,6 +60,14 @@ function App() {
           <Route path="/profile" element={<Profile />} />
         <Route path="/address" element={<Address />} />
         <Route path="/change-password" element={<ChangePassword />} />
+     
+
+<Route path="/login"  element={<Login />} />
+<Route path="/signup" element={<Signup />} />
+
+
+
+
 
         <Route path="/product-dashboard" element={<ProductDashboard />} />
         <Route path="/category-dashboard" element={<CategoryDashboard />} />

@@ -18,7 +18,7 @@ const Header = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const user_id = 1;
+  const user_id = localStorage.getItem("user_id");
 
   const { cartItems } = useSelector((s) => s.cart);
   const { wishlistItems } = useSelector((s) => s.wishlist);
@@ -188,11 +188,11 @@ const Header = () => {
               </button>
             </Link>
 
-            <Link to="/profile">
-              <button className="hover:scale-110 transition">
-                <FiUser />
-              </button>
-            </Link>
+           <Link to={user_id ? "/profile" : "/signup"}>
+  <button className="hover:scale-110 transition">
+    <FiUser />
+  </button>
+</Link>
           </div>
         </div>
 

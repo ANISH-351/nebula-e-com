@@ -15,7 +15,7 @@ function FeaturedProducts() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const user_id = 1;
+  const user_id = localStorage.getItem("user_id");
 
   const { wishlistItems } = useSelector((s) => s.wishlist);
   const { cartItems } = useSelector((s) => s.cart);

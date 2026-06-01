@@ -1,67 +1,94 @@
-import React, { useState } from "react";
-import { FiTruck, FiLock, FiPlus, FiEdit2, FiTrash2, FiChevronRight } from "react-icons/fi";
+import React, { useState, useEffect } from "react";
+import { FiTruck, FiPlus, FiEdit2, FiTrash2, FiChevronRight } from "react-icons/fi";
+import { useSelector } from "react-redux";
+import axios from "axios";
+import { api } from "../../components/const";
 
-import shirt from "../../assets/home-images/shirt.png";
-import pant from "../../assets/home-images/pant.png";
+const user_id = localStorage.getItem("user_id");
 
-const cartItems = [
-  { id: 1, name: "Premium Beige Shirt", size: "M", quantity: 1, price: 89, image: shirt },
-  { id: 2, name: "Classic Formal Pant", size: "L", quantity: 2, price: 120, image: pant },
-];
-
-const EMPTY_FORM = { firstName: "", lastName: "", email: "", street: "", city: "", postal: "", country: "" };
+const EMPTY_FORM = {
+  full_name: "", phone: "", pincode: "", city: "",
+  state: "", country: "", address_line: ""
+};
 
 export default function Checkout() {
-  const subtotal = cartItems.reduce((a, i) => a + i.price * i.quantity, 0);
-  const tax = 12;
-  const total = subtotal + tax;
+  const { cartItems } = useSelector((s) => s.cart);
 
-  const [addresses, setAddresses] = useState([
-    { id: 1, firstName: "Alex", lastName: "Morgan", email: "alex@email.com", street: "24 Mayfair Lane", city: "London", postal: "W1K 2HP", country: "United Kingdom" },
-    { id: 2, firstName: "Alex", lastName: "Morgan", email: "alex@email.com", street: "10 Park Avenue", city: "New York", postal: "10016", country: "United States" },
-  ]);
-  const [selectedId, setSelectedId] = useState(1);
+  const subtotal = cartItems.reduce((a, i) => a + i.price * i.quantity, 0);
+
+  const [addresses, setAddresses] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [addrLoading, setAddrLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAddresses();
+  }, []);
+
+  const fetchAddresses = () => {
+    setAddrLoading(true);
+    axios.get(`${api}/getAddress/${user_id}`)
+      .then((res) => {
+        setAddresses(res.data);
+        if (res.data.length > 0 && !selectedId) {
+          setSelectedId(res.data[0].id);
+        }
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setAddrLoading(false));
+  };
 
   const validate = () => {
     const e = {};
-    if (!form.firstName.trim()) e.firstName = "Required";
-    if (!form.lastName.trim()) e.lastName = "Required";
-    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = "Valid email required";
-    if (!form.street.trim()) e.street = "Required";
-    if (!form.city.trim()) e.city = "Required";
-    if (!form.postal.trim()) e.postal = "Required";
-    if (!form.country.trim()) e.country = "Required";
+    if (!form.full_name.trim())    e.full_name    = "Required";
+    if (!form.phone.trim())        e.phone        = "Required";
+    if (!form.pincode.trim())      e.pincode      = "Required";
+    if (!form.city.trim())         e.city         = "Required";
+    if (!form.state.trim())        e.state        = "Required";
+    if (!form.country.trim())      e.country      = "Required";
+    if (!form.address_line.trim()) e.address_line = "Required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const openAdd = () => { setForm(EMPTY_FORM); setEditingId(null); setErrors({}); setShowForm(true); };
-  const openEdit = (addr) => { setForm({ ...addr }); setEditingId(addr.id); setErrors({}); setShowForm(true); };
+  const openAdd = () => {
+    setForm(EMPTY_FORM); setEditingId(null); setErrors({}); setShowForm(true);
+  };
+
+  const openEdit = (addr) => {
+    setForm({
+      full_name: addr.full_name, phone: addr.phone, pincode: addr.pincode,
+      city: addr.city, state: addr.state, country: addr.country, address_line: addr.address_line
+    });
+    setEditingId(addr.id); setErrors({}); setShowForm(true);
+  };
+
   const cancelForm = () => { setShowForm(false); setEditingId(null); setErrors({}); };
 
   const saveAddress = () => {
     if (!validate()) return;
     if (editingId) {
-      setAddresses((prev) => prev.map((a) => (a.id === editingId ? { ...form, id: editingId } : a)));
+      axios.put(`${api}/updateAddress/${editingId}`, form)
+        .then(() => { fetchAddresses(); setShowForm(false); setEditingId(null); })
+        .catch((err) => console.error(err));
     } else {
-      const newAddr = { ...form, id: Date.now() };
-      setAddresses((prev) => [...prev, newAddr]);
-      setSelectedId(newAddr.id);
+      axios.post(`${api}/addAddress`, { ...form, user_id })
+        .then(() => { fetchAddresses(); setShowForm(false); })
+        .catch((err) => console.error(err));
     }
-    setShowForm(false);
-    setEditingId(null);
   };
 
   const removeAddress = (id) => {
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
-    if (selectedId === id) {
-      const remaining = addresses.filter((a) => a.id !== id);
-      if (remaining.length) setSelectedId(remaining[0].id);
-    }
+    axios.delete(`${api}/deleteAddress/${id}`)
+      .then(() => {
+        const remaining = addresses.filter((a) => a.id !== id);
+        setAddresses(remaining);
+        if (selectedId === id) setSelectedId(remaining[0]?.id || null);
+      })
+      .catch((err) => console.error(err));
   };
 
   const inputClass = (field) =>
@@ -79,13 +106,11 @@ export default function Checkout() {
           <h1 className="text-[2rem] sm:text-[2.6rem] font-serif text-gray-900 mt-2 leading-tight">Checkout</h1>
         </div>
 
-        {/* Layout */}
         <div className="grid lg:grid-cols-[1fr_340px] gap-8 xl:gap-12 items-start">
 
-          {/* ── Left: Shipping Address ── */}
+          {/* Shipping Address */}
           <div className="bg-[#faf7f2] rounded-3xl p-6 sm:p-8">
 
-            {/* Section header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[#b89552]/10 flex items-center justify-center">
@@ -103,13 +128,24 @@ export default function Checkout() {
               )}
             </div>
 
-            {/* Address cards */}
+            {/* Address list */}
             {!showForm && (
               <div className="space-y-3">
-                {addresses.length === 0 && (
-                  <p className="text-sm text-gray-400 text-center py-8">No saved addresses. Add one above.</p>
+                {addrLoading && (
+                  <>
+                    {[...Array(2)].map((_, i) => (
+                      <div key={i} className="h-24 rounded-2xl bg-white/60 animate-pulse" />
+                    ))}
+                  </>
                 )}
-                {addresses.map((addr) => (
+
+                {!addrLoading && addresses.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-8">
+                    No saved addresses. Add one above.
+                  </p>
+                )}
+
+                {!addrLoading && addresses.map((addr) => (
                   <div
                     key={addr.id}
                     onClick={() => setSelectedId(addr.id)}
@@ -128,10 +164,10 @@ export default function Checkout() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{addr.firstName} {addr.lastName}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{addr.street}, {addr.city}</p>
-                      <p className="text-xs text-gray-500">{addr.postal}, {addr.country}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{addr.email}</p>
+                      <p className="text-sm font-semibold text-gray-900">{addr.full_name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{addr.phone}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{addr.address_line}, {addr.city}</p>
+                      <p className="text-xs text-gray-500">{addr.state}, {addr.pincode}, {addr.country}</p>
                     </div>
 
                     {/* Actions */}
@@ -164,28 +200,22 @@ export default function Checkout() {
                 </p>
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
-                    <input type="text" placeholder="First Name" value={form.firstName}
-                      onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                      className={inputClass("firstName")} />
-                    {errors.firstName && <p className="text-xs text-red-400 mt-1 pl-1">{errors.firstName}</p>}
+                    <input type="text" placeholder="Full Name" value={form.full_name}
+                      onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                      className={inputClass("full_name")} />
+                    {errors.full_name && <p className="text-xs text-red-400 mt-1 pl-1">{errors.full_name}</p>}
                   </div>
                   <div>
-                    <input type="text" placeholder="Last Name" value={form.lastName}
-                      onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                      className={inputClass("lastName")} />
-                    {errors.lastName && <p className="text-xs text-red-400 mt-1 pl-1">{errors.lastName}</p>}
+                    <input type="text" placeholder="Phone Number" value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      className={inputClass("phone")} />
+                    {errors.phone && <p className="text-xs text-red-400 mt-1 pl-1">{errors.phone}</p>}
                   </div>
                   <div className="md:col-span-2">
-                    <input type="email" placeholder="Email Address" value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className={inputClass("email")} />
-                    {errors.email && <p className="text-xs text-red-400 mt-1 pl-1">{errors.email}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <input type="text" placeholder="Street Address" value={form.street}
-                      onChange={(e) => setForm({ ...form, street: e.target.value })}
-                      className={inputClass("street")} />
-                    {errors.street && <p className="text-xs text-red-400 mt-1 pl-1">{errors.street}</p>}
+                    <input type="text" placeholder="Address Line" value={form.address_line}
+                      onChange={(e) => setForm({ ...form, address_line: e.target.value })}
+                      className={inputClass("address_line")} />
+                    {errors.address_line && <p className="text-xs text-red-400 mt-1 pl-1">{errors.address_line}</p>}
                   </div>
                   <div>
                     <input type="text" placeholder="City" value={form.city}
@@ -194,12 +224,18 @@ export default function Checkout() {
                     {errors.city && <p className="text-xs text-red-400 mt-1 pl-1">{errors.city}</p>}
                   </div>
                   <div>
-                    <input type="text" placeholder="Postal Code" value={form.postal}
-                      onChange={(e) => setForm({ ...form, postal: e.target.value })}
-                      className={inputClass("postal")} />
-                    {errors.postal && <p className="text-xs text-red-400 mt-1 pl-1">{errors.postal}</p>}
+                    <input type="text" placeholder="State" value={form.state}
+                      onChange={(e) => setForm({ ...form, state: e.target.value })}
+                      className={inputClass("state")} />
+                    {errors.state && <p className="text-xs text-red-400 mt-1 pl-1">{errors.state}</p>}
                   </div>
-                  <div className="md:col-span-2">
+                  <div>
+                    <input type="text" placeholder="Pincode" value={form.pincode}
+                      onChange={(e) => setForm({ ...form, pincode: e.target.value })}
+                      className={inputClass("pincode")} />
+                    {errors.pincode && <p className="text-xs text-red-400 mt-1 pl-1">{errors.pincode}</p>}
+                  </div>
+                  <div>
                     <input type="text" placeholder="Country" value={form.country}
                       onChange={(e) => setForm({ ...form, country: e.target.value })}
                       className={inputClass("country")} />
@@ -220,12 +256,27 @@ export default function Checkout() {
             )}
           </div>
 
-          {/* ── Right: Order Summary ── */}
+          {/* Order Summary */}
           <div className="bg-[#faf7f2] rounded-3xl p-6 sm:p-8 lg:sticky lg:top-24">
             <h2 className="text-2xl font-serif text-gray-900">Order Summary</h2>
 
-            {/* Price rows */}
-            <div className="mt-6 space-y-3 text-sm">
+            {/* Cart items */}
+            <div className="mt-5 space-y-3">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex-shrink-0">
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
+                    <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-800">₹{item.price * item.quantity}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-[#e6dcc8] mt-5 pt-4 space-y-3 text-sm">
               <div className="flex justify-between text-gray-500">
                 <span>Subtotal</span>
                 <span className="text-gray-900 font-medium">₹{subtotal}</span>
@@ -234,21 +285,17 @@ export default function Checkout() {
                 <span>Shipping</span>
                 <span className="text-green-600 font-medium">Free</span>
               </div>
-              <div className="flex justify-between text-gray-500">
-                <span>Tax</span>
-                <span className="text-gray-900 font-medium">₹{tax}</span>
-              </div>
             </div>
 
-            <div className="border-t border-[#e6dcc8] mt-5 pt-5 flex items-center justify-between">
+            <div className="border-t border-[#e6dcc8] mt-4 pt-4 flex items-center justify-between">
               <span className="text-base font-semibold text-gray-900">Total</span>
-              <span className="text-2xl font-semibold text-[#b89552]">₹{total}</span>
+              <span className="text-2xl font-semibold text-[#b89552]">₹{subtotal}</span>
             </div>
 
-       
-
-            {/* CTA */}
-            <button className="w-full flex items-center justify-center gap-2 bg-[#b89552] hover:bg-[#9e7f3e] active:scale-[0.98] transition-all text-white py-4 rounded-full mt-4 text-sm font-medium">
+            <button
+              disabled={!selectedId || cartItems.length === 0}
+              className="w-full flex items-center justify-center gap-2 bg-[#b89552] hover:bg-[#9e7f3e] active:scale-[0.98] transition-all text-white py-4 rounded-full mt-5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Place Order
               <FiChevronRight size={16} />
             </button>
