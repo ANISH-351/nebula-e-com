@@ -15,7 +15,7 @@ function Category() {
   }, [dispatch]);
 
   return (
-    <section className="w-full py-14 bg-white">
+    <section className="w-full pt-14 bg-white">
       <div className="container mx-auto px-4 md:px-[40px] lg:px-[80px] py-4">
 
         {/* Heading */}
