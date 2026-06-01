@@ -177,3 +177,22 @@ exports.getRelatedProducts = (req, res) => {
         }
     );
 };
+
+
+exports.searchProducts = (req, res) => {
+
+    const keyword = req.query.keyword;
+
+    db.query(
+        `SELECT * FROM product
+         WHERE name LIKE ?
+         OR description LIKE ?`,
+        [`%${keyword}%`, `%${keyword}%`],
+        (err, result) => {
+
+            if (err) return res.status(500).send(err);
+
+            res.json(result);
+        }
+    );
+};
