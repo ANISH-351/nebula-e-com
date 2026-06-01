@@ -31,19 +31,18 @@ exports.addWishlist = (req, res) => {
 exports.getWishlist = (req, res) => {
     const user_id = req.params.user_id;
 
-   db.query(
-    `SELECT wishlist.id, product.name, product.price, product.image
-     FROM wishlist
-     JOIN product ON wishlist.product_id = product.id
-     WHERE wishlist.user_id = ?`,
-    [user_id],
-    (err, result) => {
-        if (err) return res.status(500).send(err);
-        res.json(result);
-    }
-);
+    db.query(
+        `SELECT wishlist.id, wishlist.product_id, product.name, product.price, product.image
+         FROM wishlist
+         JOIN product ON wishlist.product_id = product.id
+         WHERE wishlist.user_id = ?`,
+        [user_id],
+        (err, result) => {
+            if (err) return res.status(500).send(err);
+            res.json(result);
+        }
+    );
 };
-
 
 // DELETE WISHLIST
 exports.deleteWishlist = (req, res) => {

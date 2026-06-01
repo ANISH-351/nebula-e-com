@@ -90,7 +90,7 @@ exports.getCart = (req, res) => {
     const user_id = req.params.user_id;
 
     db.query(
-        `SELECT cart.id, product.name, product.price, product.image
+        `SELECT cart.id, cart.product_id, product.name, product.price, product.image
          FROM cart
          JOIN product ON cart.product_id = product.id
          WHERE cart.user_id = ?`,
