@@ -104,7 +104,7 @@ export default function Checkout() {
 
       // 2. Open Razorpay
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: "rzp_test_T1AUwBTDCFooHr",
         amount: order.amount,
         currency: "INR",
         name: "Nebula",
