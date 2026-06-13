@@ -120,7 +120,7 @@ export default function Checkout() {
               razorpay_signature:  response.razorpay_signature,
             });
 
-            if (verify.success) {
+            if (data.success) {
     await axios.post(`${api}/placeOrder`, {
         user_id,
         address_id:        selectedId,
