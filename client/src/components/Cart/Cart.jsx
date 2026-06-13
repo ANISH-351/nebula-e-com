@@ -4,11 +4,13 @@ import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCart, increaseQuantity, decreaseQuantity, removeFromCart } from "../../components/features/cartSlice";
 
-const user_id = localStorage.getItem("user_id");
+
 
 function Cart() {
   const dispatch = useDispatch();
   const { cartItems, loading } = useSelector((s) => s.cart);
+
+  const user_id = localStorage.getItem("user_id");
 
   useEffect(() => {
     dispatch(fetchCart(user_id));

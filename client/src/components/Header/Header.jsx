@@ -149,7 +149,7 @@ const Header = () => {
               {categories.map((cat) => (
                 <Link
                   key={cat.id}
-                  to="/category"
+                  to={`/category/${cat.id}`}
                   className="text-gray-700 hover:text-[#c5a46d] transition"
                 >
                   {cat.name}

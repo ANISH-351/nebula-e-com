@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { FiTruck, FiPlus, FiEdit2, FiTrash2, FiChevronRight } from "react-icons/fi";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { api } from "../../components/const";
-
-const user_id = localStorage.getItem("user_id");
 
 const EMPTY_FORM = {
   full_name: "", phone: "", pincode: "", city: "",
@@ -12,8 +11,11 @@ const EMPTY_FORM = {
 };
 
 export default function Checkout() {
-  const { cartItems } = useSelector((s) => s.cart);
+  const navigate = useNavigate();
+  const user_id = parseInt(localStorage.getItem("user_id"));
+  const user = JSON.parse(localStorage.getItem("user") || "null");
 
+  const { cartItems } = useSelector((s) => s.cart);
   const subtotal = cartItems.reduce((a, i) => a + i.price * i.quantity, 0);
 
   const [addresses, setAddresses] = useState([]);
@@ -23,6 +25,7 @@ export default function Checkout() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [addrLoading, setAddrLoading] = useState(true);
+  const [payLoading, setPayLoading] = useState(false);
 
   useEffect(() => {
     fetchAddresses();
@@ -54,9 +57,8 @@ export default function Checkout() {
     return Object.keys(e).length === 0;
   };
 
-  const openAdd = () => {
-    setForm(EMPTY_FORM); setEditingId(null); setErrors({}); setShowForm(true);
-  };
+  const openAdd    = () => { setForm(EMPTY_FORM); setEditingId(null); setErrors({}); setShowForm(true); };
+  const cancelForm = () => { setShowForm(false); setEditingId(null); setErrors({}); };
 
   const openEdit = (addr) => {
     setForm({
@@ -65,8 +67,6 @@ export default function Checkout() {
     });
     setEditingId(addr.id); setErrors({}); setShowForm(true);
   };
-
-  const cancelForm = () => { setShowForm(false); setEditingId(null); setErrors({}); };
 
   const saveAddress = () => {
     if (!validate()) return;
@@ -89,6 +89,78 @@ export default function Checkout() {
         if (selectedId === id) setSelectedId(remaining[0]?.id || null);
       })
       .catch((err) => console.error(err));
+  };
+
+  // ── Razorpay ──
+  const handlePlaceOrder = async () => {
+    if (!selectedId || cartItems.length === 0) return;
+
+    setPayLoading(true);
+    try {
+      // 1. Create order on backend
+      const { data: order } = await axios.post(`${api}/createOrder`, {
+        amount: subtotal,
+      });
+
+      // 2. Open Razorpay
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: "INR",
+        name: "Nebula",
+        description: "Order Payment",
+        image: "/logo.png",
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            // 3. Verify payment
+            const { data } = await axios.post(`${api}/verifyPayment`, {
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
+            });
+
+            if (data.success) {
+              navigate("/order-success");
+            } else {
+              alert("Payment verification failed. Please contact support.");
+            }
+          } catch (err) {
+            console.error(err);
+            alert("Verification error. Please contact support.");
+          }
+        },
+        prefill: {
+          name:    user?.name  || "",
+          email:   user?.email || "",
+          contact: addresses.find((a) => a.id === selectedId)?.phone || "",
+        },
+        notes: {
+          address_id: selectedId,
+          user_id,
+        },
+        theme: {
+          color: "#b89552",
+        },
+        modal: {
+          ondismiss: () => setPayLoading(false),
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      rzp.on("payment.failed", (response) => {
+        alert(`Payment failed: ${response.error.description}`);
+        setPayLoading(false);
+      });
+
+      rzp.open();
+
+    } catch (err) {
+      console.error(err);
+      alert("Could not initiate payment. Try again.");
+      setPayLoading(false);
+    }
   };
 
   const inputClass = (field) =>
@@ -132,11 +204,9 @@ export default function Checkout() {
             {!showForm && (
               <div className="space-y-3">
                 {addrLoading && (
-                  <>
-                    {[...Array(2)].map((_, i) => (
-                      <div key={i} className="h-24 rounded-2xl bg-white/60 animate-pulse" />
-                    ))}
-                  </>
+                  [...Array(2)].map((_, i) => (
+                    <div key={i} className="h-24 rounded-2xl bg-white/60 animate-pulse" />
+                  ))
                 )}
 
                 {!addrLoading && addresses.length === 0 && (
@@ -175,14 +245,12 @@ export default function Checkout() {
                       <button
                         onClick={() => openEdit(addr)}
                         className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-[#b89552] hover:bg-[#fdf6ec] transition"
-                        aria-label="Edit"
                       >
                         <FiEdit2 size={13} />
                       </button>
                       <button
                         onClick={() => removeAddress(addr.id)}
                         className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
-                        aria-label="Remove"
                       >
                         <FiTrash2 size={13} />
                       </button>
@@ -292,16 +360,30 @@ export default function Checkout() {
               <span className="text-2xl font-semibold text-[#b89552]">₹{subtotal}</span>
             </div>
 
+            {/* Place Order → triggers Razorpay */}
             <button
-              disabled={!selectedId || cartItems.length === 0}
+              onClick={handlePlaceOrder}
+              disabled={!selectedId || cartItems.length === 0 || payLoading}
               className="w-full flex items-center justify-center gap-2 bg-[#b89552] hover:bg-[#9e7f3e] active:scale-[0.98] transition-all text-white py-4 rounded-full mt-5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Place Order
-              <FiChevronRight size={16} />
+              {payLoading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Pay ₹{subtotal}
+                  <FiChevronRight size={16} />
+                </>
+              )}
             </button>
 
             <p className="text-center text-[11px] text-gray-400 mt-4 leading-relaxed">
-              By placing your order you agree to our Terms & Privacy Policy
+              Secured by Razorpay · 256-bit SSL encryption
             </p>
           </div>
 
