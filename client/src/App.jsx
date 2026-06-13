@@ -24,6 +24,8 @@ import ChangePassword from './components/Profile/ChangePassword';
    import { Login, Signup } from "./components/Auth/Auth";
 
 import ScrollToTop from './components/ScrollToTop';
+import OrderSuccess from './components/OrderSuccess/OrderSuccess';
+import Orders from './components/Orders/Orders';
 
 function App() {
   const location = useLocation();
@@ -60,6 +62,9 @@ function App() {
           <Route path="/profile" element={<Profile />} />
         <Route path="/address" element={<Address />} />
         <Route path="/change-password" element={<ChangePassword />} />
+         <Route path="/order-success" element={<OrderSuccess/>} />
+
+         <Route path="/orders" element={<Orders/>} />
      
 
 <Route path="/login"  element={<Login />} />

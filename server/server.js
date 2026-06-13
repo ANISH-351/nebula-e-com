@@ -18,6 +18,7 @@ app.use('/', require('./routes/profileRoutes'));
 app.use('/', require('./routes/addressRoutes'));
 app.use('/', require('./routes/bannerRoutes'));
 app.use('/', require('./routes/paymentRoutes'));
+app.use('/', require('./routes/Orderroutes'));
 app.get('/', (req, res) => {
     res.send('API running');
 });

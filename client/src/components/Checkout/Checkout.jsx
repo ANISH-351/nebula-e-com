@@ -120,8 +120,27 @@ export default function Checkout() {
               razorpay_signature:  response.razorpay_signature,
             });
 
-            if (data.success) {
-              navigate("/order-success");
+            if (verify.success) {
+    await axios.post(`${api}/placeOrder`, {
+        user_id,
+        address_id:        selectedId,
+        payment_id:        response.razorpay_payment_id,
+        razorpay_order_id: response.razorpay_order_id,
+        total_amount:      subtotal,
+        items: cartItems.map((i) => ({
+          product_id: i.product_id,
+          quantity:   i.quantity,
+          price:      i.price,
+        })),
+      });
+
+      navigate("/order-success", {
+        state: {
+          paymentId: response.razorpay_payment_id,
+          orderId:   response.razorpay_order_id,
+          amount:    subtotal,
+        }
+      });
             } else {
               alert("Payment verification failed. Please contact support.");
             }
