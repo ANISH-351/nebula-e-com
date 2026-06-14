@@ -169,11 +169,11 @@ const Header = () => {
             <Link to="/wishlist">
               <button className="hover:scale-110 transition relative">
                 <FiHeart />
-                {wishlistItems.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-[#c5a46d] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-                    {wishlistItems.length}
-                  </span>
-                )}
+                    {/* {wishlistItems.length > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-[#c5a46d] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                        {wishlistItems.length}
+                      </span>
+                    )} */}
               </button>
             </Link>
 

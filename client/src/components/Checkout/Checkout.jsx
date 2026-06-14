@@ -109,7 +109,7 @@ export default function Checkout() {
         currency: "INR",
         name: "Nebula",
         description: "Order Payment",
-        image: "/logo.png",
+        
         order_id: order.id,
         handler: async (response) => {
           try {

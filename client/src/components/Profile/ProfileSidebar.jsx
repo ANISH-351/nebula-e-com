@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { FiUser, FiMapPin, FiLock, FiLogOut } from "react-icons/fi";
+import { FiUser, FiMapPin, FiLock, FiLogOut ,FiShoppingBag } from "react-icons/fi";
 
 function ProfileSidebar() {
   const navigate = useNavigate();
@@ -37,6 +37,18 @@ function ProfileSidebar() {
         >
           <FiMapPin />
           Address
+        </NavLink>
+
+         <NavLink
+          to="/orders"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-5 py-4 rounded-xl transition ${
+              isActive ? "bg-[#c5a46d] text-white" : "hover:bg-white"
+            }`
+          }
+        >
+          <FiShoppingBag />
+          My Orders
         </NavLink>
 
         <NavLink
