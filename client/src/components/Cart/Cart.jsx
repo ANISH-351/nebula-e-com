@@ -97,7 +97,7 @@ const handleRemove = (cartItemId) => {
                 className="flex flex-col sm:flex-row gap-5 bg-[#faf7f2] rounded-3xl p-5 transition-all"
               >
                 {/* Image */}
-                <div className="w-full sm:w-[150px] h-[180px] sm:h-[180px] rounded-2xl overflow-hidden bg-white flex-shrink-0">
+                <div className="w-full sm:w-[150px] h-[250px] sm:h-[180px] rounded-2xl overflow-hidden bg-white flex-shrink-0">
                   <img
                     src={item.image}
                     alt={item.name}

@@ -97,23 +97,19 @@ export default function Checkout() {
 
     setPayLoading(true);
     try {
-      // 1. Create order on backend
       const { data: order } = await axios.post(`${api}/createOrder`, {
         amount: subtotal,
       });
 
-      // 2. Open Razorpay
       const options = {
         key: "rzp_test_T1AUwBTDCFooHr",
         amount: order.amount,
         currency: "INR",
         name: "Nebula",
         description: "Order Payment",
-        
         order_id: order.id,
         handler: async (response) => {
           try {
-            // 3. Verify payment
             const { data } = await axios.post(`${api}/verifyPayment`, {
               razorpay_order_id:   response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -121,26 +117,26 @@ export default function Checkout() {
             });
 
             if (data.success) {
-    await axios.post(`${api}/placeOrder`, {
-        user_id,
-        address_id:        selectedId,
-        payment_id:        response.razorpay_payment_id,
-        razorpay_order_id: response.razorpay_order_id,
-        total_amount:      subtotal,
-        items: cartItems.map((i) => ({
-          product_id: i.product_id,
-          quantity:   i.quantity,
-          price:      i.price,
-        })),
-      });
+              await axios.post(`${api}/placeOrder`, {
+                user_id,
+                address_id:        selectedId,
+                payment_id:        response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                total_amount:      subtotal,
+                items: cartItems.map((i) => ({
+                  product_id: i.product_id,
+                  quantity:   i.quantity,
+                  price:      i.price,
+                })),
+              });
 
-      navigate("/order-success", {
-        state: {
-          paymentId: response.razorpay_payment_id,
-          orderId:   response.razorpay_order_id,
-          amount:    subtotal,
-        }
-      });
+              navigate("/order-success", {
+                state: {
+                  paymentId: response.razorpay_payment_id,
+                  orderId:   response.razorpay_order_id,
+                  amount:    subtotal,
+                }
+              });
             } else {
               alert("Payment verification failed. Please contact support.");
             }
@@ -188,31 +184,35 @@ export default function Checkout() {
     }`;
 
   return (
-    <section className="w-full bg-white py-10 lg:py-16 min-h-screen">
-      <div className="container mx-auto px-4 md:px-[40px] lg:px-[80px]">
+    // FIX: overflow-x-hidden on the root prevents any child from causing horizontal scroll
+    <section className="w-full bg-white py-10 lg:py-16 min-h-screen overflow-x-hidden">
+      {/* FIX: removed large fixed px values on mobile; use px-4 as base and scale up */}
+      <div className="w-full max-w-screen-xl mx-auto px-4 sm:px-6 md:px-10 lg:px-16">
 
         {/* Heading */}
-        <div className="mb-10">
+        <div className="mb-8 sm:mb-10">
           <p className="text-[11px] tracking-[3px] uppercase text-[#b89552] font-medium">Secure Checkout</p>
-          <h1 className="text-[2rem] sm:text-[2.6rem] font-serif text-gray-900 mt-2 leading-tight">Checkout</h1>
+          <h1 className="text-3xl sm:text-[2.6rem] font-serif text-gray-900 mt-2 leading-tight">Checkout</h1>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_340px] gap-8 xl:gap-12 items-start">
+        {/* FIX: grid stacks to single column on mobile, side-by-side only on lg+ */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 xl:gap-12 items-start">
 
           {/* Shipping Address */}
-          <div className="bg-[#faf7f2] rounded-3xl p-6 sm:p-8">
+          <div className="bg-[#faf7f2] rounded-3xl p-5 sm:p-8 min-w-0">
 
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#b89552]/10 flex items-center justify-center">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-[#b89552]/10 flex items-center justify-center flex-shrink-0">
                   <FiTruck size={16} className="text-[#b89552]" />
                 </div>
-                <h2 className="text-xl font-serif text-gray-900">Shipping Address</h2>
+                {/* FIX: truncate prevents long text from pushing layout */}
+                <h2 className="text-lg sm:text-xl font-serif text-gray-900 truncate">Shipping Address</h2>
               </div>
               {!showForm && (
                 <button
                   onClick={openAdd}
-                  className="flex items-center gap-1.5 text-xs font-medium text-[#b89552] border border-[#d9c4a0] px-3.5 py-2 rounded-full hover:bg-white transition"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium text-[#b89552] border border-[#d9c4a0] px-3.5 py-2 rounded-full hover:bg-white transition ml-2"
                 >
                   <FiPlus size={13} /> Add New
                 </button>
@@ -238,7 +238,7 @@ export default function Checkout() {
                   <div
                     key={addr.id}
                     onClick={() => setSelectedId(addr.id)}
-                    className={`flex items-start gap-4 cursor-pointer rounded-2xl border p-4 transition-all ${
+                    className={`flex items-start gap-3 cursor-pointer rounded-2xl border p-4 transition-all ${
                       selectedId === addr.id
                         ? "border-[#b89552] bg-white"
                         : "border-transparent bg-white/50 hover:bg-white hover:border-[#e6dcc8]"
@@ -251,12 +251,13 @@ export default function Checkout() {
                       {selectedId === addr.id && <div className="w-2.5 h-2.5 rounded-full bg-[#b89552]" />}
                     </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{addr.full_name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{addr.phone}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{addr.address_line}, {addr.city}</p>
-                      <p className="text-xs text-gray-500">{addr.state}, {addr.pincode}, {addr.country}</p>
+                    {/* Info — FIX: min-w-0 + overflow-hidden ensures text wraps instead of overflowing */}
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{addr.full_name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{addr.phone}</p>
+                      {/* FIX: break-words on address text to prevent long strings overflowing */}
+                      <p className="text-xs text-gray-500 mt-0.5 break-words">{addr.address_line}, {addr.city}</p>
+                      <p className="text-xs text-gray-500 break-words">{addr.state}, {addr.pincode}, {addr.country}</p>
                     </div>
 
                     {/* Actions */}
@@ -285,7 +286,8 @@ export default function Checkout() {
                 <p className="text-sm font-medium text-gray-700 mb-4">
                   {editingId ? "Edit Address" : "New Address"}
                 </p>
-                <div className="grid md:grid-cols-2 gap-3">
+                {/* FIX: single column on mobile, 2-col on md+ */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <input type="text" placeholder="Full Name" value={form.full_name}
                       onChange={(e) => setForm({ ...form, full_name: e.target.value })}
@@ -298,7 +300,7 @@ export default function Checkout() {
                       className={inputClass("phone")} />
                     {errors.phone && <p className="text-xs text-red-400 mt-1 pl-1">{errors.phone}</p>}
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="sm:col-span-2">
                     <input type="text" placeholder="Address Line" value={form.address_line}
                       onChange={(e) => setForm({ ...form, address_line: e.target.value })}
                       className={inputClass("address_line")} />
@@ -329,7 +331,7 @@ export default function Checkout() {
                     {errors.country && <p className="text-xs text-red-400 mt-1 pl-1">{errors.country}</p>}
                   </div>
                 </div>
-                <div className="flex gap-3 mt-5">
+                <div className="flex flex-col sm:flex-row gap-3 mt-5">
                   <button onClick={saveAddress}
                     className="flex-1 bg-[#b89552] hover:bg-[#9e7f3e] active:scale-[0.98] text-white text-sm font-medium py-3 rounded-full transition-all">
                     {editingId ? "Save Changes" : "Save Address"}
@@ -343,8 +345,8 @@ export default function Checkout() {
             )}
           </div>
 
-          {/* Order Summary */}
-          <div className="bg-[#faf7f2] rounded-3xl p-6 sm:p-8 lg:sticky lg:top-24">
+          {/* Order Summary — FIX: min-w-0 prevents it from stretching beyond its column */}
+          <div className="bg-[#faf7f2] rounded-3xl p-5 sm:p-8 min-w-0 lg:sticky lg:top-24">
             <h2 className="text-2xl font-serif text-gray-900">Order Summary</h2>
 
             {/* Cart items */}
@@ -354,11 +356,12 @@ export default function Checkout() {
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex-shrink-0">
                     <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
+                  {/* FIX: min-w-0 so text truncates instead of overflowing */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
                     <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                   </div>
-                  <span className="text-sm font-semibold text-gray-800">₹{item.price * item.quantity}</span>
+                  <span className="text-sm font-semibold text-gray-800 flex-shrink-0">₹{item.price * item.quantity}</span>
                 </div>
               ))}
             </div>
@@ -379,7 +382,6 @@ export default function Checkout() {
               <span className="text-2xl font-semibold text-[#b89552]">₹{subtotal}</span>
             </div>
 
-            {/* Place Order → triggers Razorpay */}
             <button
               onClick={handlePlaceOrder}
               disabled={!selectedId || cartItems.length === 0 || payLoading}

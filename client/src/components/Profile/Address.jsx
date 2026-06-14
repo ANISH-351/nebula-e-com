@@ -227,7 +227,7 @@ function Address() {
 
                 </div>
 
-                <div className="flex gap-3 mt-6">
+                <div className="flex max-sm:flex-col gap-3 mt-6">
 
                   <button
                     onClick={handleSave}
