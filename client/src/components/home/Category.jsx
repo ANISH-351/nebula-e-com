@@ -43,7 +43,7 @@ function Category() {
           >
             {categories.map((item) => (
               <SwiperSlide key={item.id}>
-                <Link to="/category">
+                <Link to={`/category/${item.id}`}>
                   <div className="group relative overflow-hidden rounded-[30px] cursor-pointer">
 
                     {/* Image */}

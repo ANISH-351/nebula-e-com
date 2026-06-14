@@ -13,6 +13,7 @@ import { fetchCart } from "../../components/features/cartSlice";
 import { fetchWishlist } from "../../components/features/wishlistSlice";
 import axios from "axios";
 import { api } from "../../components/const";
+import LoginPopup from "../../components/LoginPopup"; // ← added
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -24,11 +25,11 @@ const Header = () => {
   const { wishlistItems } = useSelector((s) => s.wishlist);
   const { categories } = useSelector((s) => s.category);
 
-  // Search state
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false); // ← added
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -55,7 +56,7 @@ const Header = () => {
       } finally {
         setSearching(false);
       }
-    }, 400); // 400ms debounce
+    }, 400);
 
     return () => clearTimeout(delay);
   }, [keyword]);
@@ -75,6 +76,15 @@ const Header = () => {
     setShowDropdown(false);
     setKeyword("");
     navigate(`/product-detail/${id}`);
+  };
+
+  // ← added: guard for wishlist/cart icon clicks
+  const handleProtectedNav = (path) => {
+    if (!user_id) {
+      setShowLoginPopup(true);
+      return;
+    }
+    navigate(path);
   };
 
   const SearchBox = ({ mobile }) => (
@@ -125,60 +135,66 @@ const Header = () => {
   );
 
   return (
-    <header className="w-full shadow-xl bg-white sticky top-0 z-50">
-      <div className="container mx-auto px-4 md:px-[40px] lg:px-[80px] py-4">
-        <div className="flex items-center justify-between h-12 md:h-20 gap-4">
+    <>
+      {/* Login Popup ← added */}
+      {showLoginPopup && (
+        <LoginPopup onClose={() => setShowLoginPopup(false)} />
+      )}
 
-          {/* Left Section */}
-          <div className="flex items-center gap-10">
+      <header className="w-full shadow-xl bg-white sticky top-0 z-50">
+        <div className="container mx-auto px-4 md:px-[40px] lg:px-[80px] py-4">
+          <div className="flex items-center justify-between h-12 md:h-20 gap-4">
 
-            {/* Mobile Menu */}
-            <button className="lg:hidden text-[#b89552] text-2xl">
-              <FiMenu />
-            </button>
+            {/* Left Section */}
+            <div className="flex items-center gap-10">
 
-            {/* Logo */}
-            <Link to="/">
-              <div className="flex items-center">
-                <img src={logo} alt="Logo" className="h-[50px] mb-[20px] md:h-[80px] w-auto" />
-              </div>
-            </Link>
-
-            {/* Categories from API */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  to={`/category/${cat.id}`}
-                  className="text-gray-700 hover:text-[#c5a46d] transition"
-                >
-                  {cat.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          {/* Desktop Search */}
-          <div className="hidden md:flex flex-1 max-w-xl">
-            <SearchBox />
-          </div>
-
-          {/* Right Icons */}
-          <div className="flex items-center gap-5 text-2xl text-[#b89552]">
-
-            <Link to="/wishlist">
-              <button className="hover:scale-110 transition relative">
-                <FiHeart />
-                    {/* {wishlistItems.length > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-[#c5a46d] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-                        {wishlistItems.length}
-                      </span>
-                    )} */}
+              {/* Mobile Menu */}
+              <button className="lg:hidden text-[#b89552] text-2xl">
+                <FiMenu />
               </button>
-            </Link>
 
-            <Link to="/cart">
-              <button className="hover:scale-110 transition relative">
+              {/* Logo */}
+              <Link to="/">
+                <div className="flex items-center">
+                  <img src={logo} alt="Logo" className="h-[50px] mb-[20px] md:h-[80px] w-auto" />
+                </div>
+              </Link>
+
+              {/* Categories */}
+              <nav className="hidden lg:flex items-center gap-8">
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    to={`/category/${cat.id}`}
+                    className="text-gray-700 hover:text-[#c5a46d] transition"
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+
+            {/* Desktop Search */}
+            <div className="hidden md:flex flex-1 max-w-xl">
+              <SearchBox />
+            </div>
+
+            {/* Right Icons */}
+            <div className="flex items-center gap-5 text-2xl text-[#b89552]">
+
+              {/* Wishlist ← changed to button with guard */}
+              <button
+                onClick={() => handleProtectedNav("/wishlist")}
+                className="hover:scale-110 transition relative"
+              >
+                <FiHeart />
+              </button>
+
+              {/* Cart ← changed to button with guard */}
+              <button
+                onClick={() => handleProtectedNav("/cart")}
+                className="hover:scale-110 transition relative"
+              >
                 <FiShoppingCart />
                 {cartItems.length > 0 && (
                   <span className="absolute -top-2 -right-2 bg-[#c5a46d] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
@@ -186,23 +202,25 @@ const Header = () => {
                   </span>
                 )}
               </button>
-            </Link>
 
-           <Link to={user_id ? "/profile" : "/signup"}>
-  <button className="hover:scale-110 transition">
-    <FiUser />
-  </button>
-</Link>
+              {/* Profile — already handled with conditional link */}
+              <Link to={user_id ? "/profile" : "/signup"}>
+                <button className="hover:scale-110 transition">
+                  <FiUser />
+                </button>
+              </Link>
+
+            </div>
           </div>
-        </div>
 
-        {/* Mobile Search */}
-        <div className="md:hidden" ref={dropdownRef}>
-          <SearchBox mobile />
-        </div>
+          {/* Mobile Search */}
+          <div className="md:hidden" ref={dropdownRef}>
+            <SearchBox mobile />
+          </div>
 
-      </div>
-    </header>
+        </div>
+      </header>
+    </>
   );
 };
 

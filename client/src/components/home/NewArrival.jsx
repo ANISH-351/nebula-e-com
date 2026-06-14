@@ -8,6 +8,7 @@ import axios from "axios";
 import { api } from "../../components/const";
 import { addToCart, fetchCart, increaseQuantity, decreaseQuantity } from "../../components/features/cartSlice";
 import { addToWishlist, removeFromWishlist, fetchWishlist } from "../../components/features/wishlistSlice";
+import LoginPopup from "../../components/LoginPopup";
 
 import "swiper/css";
 
@@ -23,6 +24,7 @@ function NewArrival() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cartAnimating, setCartAnimating] = useState(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false); // ← added
 
   useEffect(() => {
     axios
@@ -38,22 +40,34 @@ function NewArrival() {
   const getCartItem = (product_id) =>
     cartItems.find((c) => c.product_id === product_id);
 
-  const handleWishlist = (e, product_id) => {
+  // ← added: guard helper
+  const requireLogin = (e, action) => {
     e.stopPropagation();
-    if (isInWishlist(product_id)) {
-      const item = wishlistItems.find((w) => w.product_id === product_id);
-      dispatch(removeFromWishlist(item.id)).then(() => dispatch(fetchWishlist(user_id)));
-    } else {
-      dispatch(addToWishlist({ user_id, product_id })).then(() => dispatch(fetchWishlist(user_id)));
+    if (!user_id) {
+      setShowLoginPopup(true);
+      return;
     }
+    action();
+  };
+
+  const handleWishlist = (e, product_id) => {
+    requireLogin(e, () => {
+      if (isInWishlist(product_id)) {
+        const item = wishlistItems.find((w) => w.product_id === product_id);
+        dispatch(removeFromWishlist(item.id)).then(() => dispatch(fetchWishlist(user_id)));
+      } else {
+        dispatch(addToWishlist({ user_id, product_id })).then(() => dispatch(fetchWishlist(user_id)));
+      }
+    });
   };
 
   const handleAddToCart = (e, product_id) => {
-    e.stopPropagation();
-    dispatch(addToCart({ user_id, product_id })).then(() => {
-      dispatch(fetchCart(user_id));
-      setCartAnimating(product_id);
-      setTimeout(() => setCartAnimating(null), 800);
+    requireLogin(e, () => {
+      dispatch(addToCart({ user_id, product_id })).then(() => {
+        dispatch(fetchCart(user_id));
+        setCartAnimating(product_id);
+        setTimeout(() => setCartAnimating(null), 800);
+      });
     });
   };
 
@@ -69,21 +83,24 @@ function NewArrival() {
 
   return (
     <section className="w-full py-16 bg-white">
+
+      {/* Login Popup ← added */}
+      {showLoginPopup && (
+        <LoginPopup onClose={() => setShowLoginPopup(false)} />
+      )}
+
       <div className="container mx-auto px-4 md:px-10 lg:px-20">
 
         {/* Heading */}
         <div className="flex items-end justify-between mb-10">
           <div>
-             <span className="text-sm tracking-[4px] uppercase text-[#c5a46d]">
+            <span className="text-sm tracking-[4px] uppercase text-[#c5a46d]">
               New Collections
-          </span>
+            </span>
             <h2 className="text-3xl lg:text-5xl font-serif text-gray-900 mt-3">
               New Arrivals
             </h2>
           </div>
-          {/* <button className="hidden md:block border border-[#d9c4a0] text-[#b89552] px-6 py-3 rounded-full hover:bg-[#faf7f2] transition">
-            View All
-          </button> */}
         </div>
 
         {/* Skeleton Loader */}
@@ -161,7 +178,6 @@ function NewArrival() {
                       >
                         {inCart ? (
                           <>
-                            {/* Go To Cart */}
                             <button
                               className="flex items-center gap-1.5 text-white bg-[#1a1a1a] px-[18px] py-2.5 rounded-full text-sm font-medium shadow-lg hover:bg-black transition-colors"
                               onClick={(e) => { e.stopPropagation(); navigate("/cart"); }}
@@ -170,7 +186,6 @@ function NewArrival() {
                               Go To Cart
                             </button>
 
-                            {/* Quantity Pill */}
                             <div
                               className="flex items-center bg-white rounded-full shadow-lg overflow-hidden"
                               onClick={(e) => e.stopPropagation()}
@@ -231,7 +246,7 @@ function NewArrival() {
                           </button>
                           <div className="flex items-center mb-2 bg-white rounded-full shadow-lg overflow-hidden">
                             <button
-                              className="w-8 h-9  flex items-center justify-center text-base font-medium text-[#b89552] bg-transparent border-none cursor-pointer hover:bg-[#faf7f2] transition-colors leading-none"
+                              className="w-8 h-9 flex items-center justify-center text-base font-medium text-[#b89552] bg-transparent border-none cursor-pointer hover:bg-[#faf7f2] transition-colors leading-none"
                               onClick={(e) => handleDecrease(e, cartItem.id)}
                             >
                               −
@@ -240,7 +255,7 @@ function NewArrival() {
                               {cartItem.quantity}
                             </span>
                             <button
-                              className="w-8 h-9  flex items-center justify-center text-base font-medium text-[#b89552] bg-transparent border-none cursor-pointer hover:bg-[#faf7f2] transition-colors leading-none"
+                              className="w-8 h-9 flex items-center justify-center text-base font-medium text-[#b89552] bg-transparent border-none cursor-pointer hover:bg-[#faf7f2] transition-colors leading-none"
                               onClick={(e) => handleIncrease(e, cartItem.id)}
                             >
                               +
@@ -264,13 +279,6 @@ function NewArrival() {
             })}
           </Swiper>
         )}
-
-        {/* Mobile View All */}
-        {/* <div className="mt-8 flex justify-center md:hidden">
-          <button className="border border-[#d9c4a0] text-[#b89552] px-6 py-3 rounded-full hover:bg-[#faf7f2] transition">
-            View All
-          </button>
-        </div> */}
 
       </div>
     </section>

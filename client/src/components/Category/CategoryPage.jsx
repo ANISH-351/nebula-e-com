@@ -8,13 +8,14 @@ import { addToWishlist, removeFromWishlist, fetchWishlist } from "../../componen
 import { fetchCategories } from "../../components/features/categorySlice";
 import axios from "axios";
 import { api } from "../../components/const";
+import LoginPopup from "../../components/LoginPopup"; // ← added
 
 function CategoryPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id } = useParams();
 
-  const user_id = localStorage.getItem("user_id") || 1;
+  const user_id = localStorage.getItem("user_id");  // ← removed fallback || 1
 
   const { wishlistItems } = useSelector((s) => s.wishlist);
   const { cartItems } = useSelector((s) => s.cart);
@@ -23,6 +24,7 @@ function CategoryPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("");
+  const [showLoginPopup, setShowLoginPopup] = useState(false); // ← added
 
   const currentCategory = categories.find((c) => c.id === Number(id));
 
@@ -45,19 +47,31 @@ function CategoryPage() {
   const getCartItem = (product_id) =>
     cartItems.find((c) => c.product_id === product_id);
 
-  const handleWishlist = (e, product_id) => {
+  // ← added: guard helper
+  const requireLogin = (e, action) => {
     e.stopPropagation();
-    if (isInWishlist(product_id)) {
-      const item = wishlistItems.find((w) => w.product_id === product_id);
-      dispatch(removeFromWishlist(item.id)).then(() => dispatch(fetchWishlist(user_id)));
-    } else {
-      dispatch(addToWishlist({ user_id, product_id })).then(() => dispatch(fetchWishlist(user_id)));
+    if (!user_id) {
+      setShowLoginPopup(true);
+      return;
     }
+    action();
+  };
+
+  const handleWishlist = (e, product_id) => {
+    requireLogin(e, () => {
+      if (isInWishlist(product_id)) {
+        const item = wishlistItems.find((w) => w.product_id === product_id);
+        dispatch(removeFromWishlist(item.id)).then(() => dispatch(fetchWishlist(user_id)));
+      } else {
+        dispatch(addToWishlist({ user_id, product_id })).then(() => dispatch(fetchWishlist(user_id)));
+      }
+    });
   };
 
   const handleAddToCart = (e, product_id) => {
-    e.stopPropagation();
-    dispatch(addToCart({ user_id, product_id })).then(() => dispatch(fetchCart(user_id)));
+    requireLogin(e, () => {
+      dispatch(addToCart({ user_id, product_id })).then(() => dispatch(fetchCart(user_id)));
+    });
   };
 
   const handleIncrease = (e, cartItemId) => {
@@ -88,6 +102,11 @@ function CategoryPage() {
         }
         .heart-pop { animation: heartPop 0.4s ease forwards; }
       `}</style>
+
+      {/* Login Popup ← added */}
+      {showLoginPopup && (
+        <LoginPopup onClose={() => setShowLoginPopup(false)} />
+      )}
 
       <section className="w-full bg-white min-h-screen py-10 lg:py-16">
         <div className="max-w-7xl mx-auto px-4 lg:px-8">

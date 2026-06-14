@@ -7,6 +7,7 @@ import axios from "axios";
 import { api } from "../../components/const";
 import { addToCart, fetchCart, increaseQuantity, decreaseQuantity } from "../../components/features/cartSlice";
 import { addToWishlist, removeFromWishlist, fetchWishlist } from "../../components/features/wishlistSlice";
+import LoginPopup from "../../components/LoginPopup"; // ← added
 
 const SIZES = ["XS", "S", "M", "L", "XL"];
 
@@ -31,36 +32,48 @@ function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState("M");
   const [cartAnimating, setCartAnimating] = useState(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false); // ← added
 
-useEffect(() => {
-  axios.get(`${api}/product_details/${id}`)
-    .then((res) => {
-      const data = Array.isArray(res.data) ? res.data[0] : res.data;
-      if (!data) {
-        console.warn("Product not found for id:", id);
-        setLoading(false);
-        return;
-      }
-      setProduct(data);
-      setMainImage(data.image);
-    })
-    .catch((err) => console.error(err))
-    .finally(() => setLoading(false));
-}, [id]);
+  useEffect(() => {
+    axios.get(`${api}/product_details/${id}`)
+      .then((res) => {
+        const data = Array.isArray(res.data) ? res.data[0] : res.data;
+        if (!data) {
+          console.warn("Product not found for id:", id);
+          setLoading(false);
+          return;
+        }
+        setProduct(data);
+        setMainImage(data.image);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const isInWishlist = wishlistItems.some((w) => w.product_id === Number(id));
   const cartItem = cartItems.find((c) => c.product_id === Number(id));
   const inCart = !!cartItem;
 
-  const handleWishlist = () => {
-    if (isInWishlist) {
-      const item = wishlistItems.find((w) => w.product_id === Number(id));
-      dispatch(removeFromWishlist(item.id)).then(() => dispatch(fetchWishlist(user_id)));
-    } else {
-      dispatch(addToWishlist({ user_id, product_id: Number(id) })).then(() =>
-        dispatch(fetchWishlist(user_id))
-      );
+  // ← added: guard helper
+  const requireLogin = (action) => {
+    if (!user_id) {
+      setShowLoginPopup(true);
+      return;
     }
+    action();
+  };
+
+  const handleWishlist = () => {
+    requireLogin(() => {
+      if (isInWishlist) {
+        const item = wishlistItems.find((w) => w.product_id === Number(id));
+        dispatch(removeFromWishlist(item.id)).then(() => dispatch(fetchWishlist(user_id)));
+      } else {
+        dispatch(addToWishlist({ user_id, product_id: Number(id) })).then(() =>
+          dispatch(fetchWishlist(user_id))
+        );
+      }
+    });
   };
 
   const handleCart = () => {
@@ -68,20 +81,22 @@ useEffect(() => {
       navigate("/cart");
       return;
     }
-    dispatch(addToCart({ user_id, product_id: Number(id), quantity })).then(() => {
-      dispatch(fetchCart(user_id));
-      setCartAnimating(true);
-      setTimeout(() => setCartAnimating(false), 800);
+    requireLogin(() => {
+      dispatch(addToCart({ user_id, product_id: Number(id), quantity })).then(() => {
+        dispatch(fetchCart(user_id));
+        setCartAnimating(true);
+        setTimeout(() => setCartAnimating(false), 800);
+      });
     });
   };
 
   const handleIncrease = () => {
-  dispatch(increaseQuantity(cartItem.id)).then(() => dispatch(fetchCart(user_id)));
-};
+    dispatch(increaseQuantity(cartItem.id)).then(() => dispatch(fetchCart(user_id)));
+  };
 
-const handleDecrease = () => {
-  dispatch(decreaseQuantity(cartItem.id)).then(() => dispatch(fetchCart(user_id)));
-};
+  const handleDecrease = () => {
+    dispatch(decreaseQuantity(cartItem.id)).then(() => dispatch(fetchCart(user_id)));
+  };
 
   if (loading) {
     return (
@@ -121,22 +136,23 @@ const handleDecrease = () => {
         .heart-pop   { animation: heartPop  0.4s ease forwards; }
       `}</style>
 
+      {/* Login Popup ← added */}
+      {showLoginPopup && (
+        <LoginPopup onClose={() => setShowLoginPopup(false)} />
+      )}
+
       <section className="w-full bg-white py-10 lg:py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10">
           <div className="grid lg:grid-cols-2 gap-10 xl:gap-20">
 
             {/* ── Left: Images ── */}
             <div className="flex flex-col gap-4">
-
-              {/* Main image */}
               <div className="relative rounded-3xl overflow-hidden bg-[#f7f3ee] aspect-[4/5]">
                 <img
                   src={mainImage}
                   alt={product.name}
                   className="w-full h-full object-cover transition-all duration-500"
                 />
-
-                {/* Wishlist icon on image */}
                 <button
                   onClick={handleWishlist}
                   className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center transition hover:bg-white hover:scale-110"
@@ -151,26 +167,19 @@ const handleDecrease = () => {
                   />
                 </button>
               </div>
-
-              {/* Single image — no thumbnails from API (only 1 image per product) */}
-              {/* If you later add multiple images, map them here */}
-
             </div>
 
             {/* ── Right: Details ── */}
             <div className="flex flex-col justify-center gap-0">
 
-              {/* Category */}
               <p className="text-[11px] tracking-[3px] uppercase text-[#b89552] font-medium">
                 {product.category_name || "Collection"}
               </p>
 
-              {/* Name */}
               <h1 className="mt-3 text-[2rem] sm:text-[2.5rem] font-serif text-gray-900 leading-tight">
                 {product.name}
               </h1>
 
-              {/* Rating — static for now */}
               <div className="flex items-center gap-2 mt-4">
                 <div className="flex gap-0.5">
                   {Array(5).fill(null).map((_, i) => (
@@ -182,14 +191,12 @@ const handleDecrease = () => {
 
               <div className="my-5 h-px bg-gray-100" />
 
-              {/* Price */}
               <div className="flex items-baseline gap-3">
                 <span className="text-[2rem] font-semibold text-[#b89552]">
                   ₹{product.price}
                 </span>
               </div>
 
-              {/* Description */}
               <p className="mt-4 text-sm text-gray-500 leading-relaxed max-w-md">
                 {product.description}
               </p>
@@ -197,7 +204,7 @@ const handleDecrease = () => {
               <div className="my-5 h-px bg-gray-100" />
 
               {/* Size */}
-              <div>
+              {/* <div>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs tracking-widest uppercase text-gray-400 font-medium">
                     Select Size
@@ -218,79 +225,75 @@ const handleDecrease = () => {
                     </button>
                   ))}
                 </div>
+              </div> */}
+
+              {/* <div className="my-5 h-px bg-gray-100" /> */}
+
+              {/* Quantity + Add to Cart */}
+              <div className="flex flex-wrap items-center gap-3">
+
+                {inCart ? (
+                  <div className="flex items-center rounded-full border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={handleDecrease}
+                      className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
+                    >
+                      <FiMinus size={14} />
+                    </button>
+                    <span className="w-10 text-center text-sm font-semibold text-gray-800">
+                      {cartItem.quantity}
+                    </span>
+                    <button
+                      onClick={handleIncrease}
+                      className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
+                    >
+                      <FiPlus size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center rounded-full border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => quantity > 1 && setQuantity(quantity - 1)}
+                      className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
+                    >
+                      <FiMinus size={14} />
+                    </button>
+                    <span className="w-10 text-center text-sm font-semibold text-gray-800">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
+                    >
+                      <FiPlus size={14} />
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleCart}
+                  className={`flex-1 min-w-[160px] flex items-center justify-center gap-2 text-white text-sm font-medium px-6 py-3.5 rounded-full transition-all
+                    ${cartAnimating ? "cart-bounce" : ""}
+                    bg-[#b89552] hover:bg-[#9e7f3e] active:scale-[0.98]`}
+                >
+                  <FiShoppingCart size={16} />
+                  {inCart ? "Go To Cart →" : "Add to Cart"}
+                </button>
+
+                <button
+                  onClick={handleWishlist}
+                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all hover:scale-110 ${
+                    isInWishlist ? "border-[#b89552] bg-amber-50" : "border-gray-200 hover:border-[#b89552]"
+                  }`}
+                >
+                  <FaHeart
+                    size={16}
+                    className={isInWishlist ? "heart-pop" : ""}
+                    style={{ color: isInWishlist ? "#b89552" : "#d4bfa0", transition: "color 0.3s" }}
+                  />
+                </button>
               </div>
 
-              <div className="my-5 h-px bg-gray-100" />
-
-            {/* Quantity + Add to Cart */}
-<div className="flex flex-wrap items-center gap-3">
-
-  {/* Quantity — show +/- controls on cart item if already in cart */}
-  {inCart ? (
-    <div className="flex items-center rounded-full border border-gray-200 overflow-hidden">
-      <button
-        onClick={handleDecrease}
-        className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
-      >
-        <FiMinus size={14} />
-      </button>
-      <span className="w-10 text-center text-sm font-semibold text-gray-800">
-        {cartItem.quantity}
-      </span>
-      <button
-        onClick={handleIncrease}
-        className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
-      >
-        <FiPlus size={14} />
-      </button>
-    </div>
-  ) : (
-    <div className="flex items-center rounded-full border border-gray-200 overflow-hidden">
-      <button
-        onClick={() => quantity > 1 && setQuantity(quantity - 1)}
-        className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
-      >
-        <FiMinus size={14} />
-      </button>
-      <span className="w-10 text-center text-sm font-semibold text-gray-800">
-        {quantity}
-      </span>
-      <button
-        onClick={() => setQuantity(quantity + 1)}
-        className="w-11 h-11 flex items-center justify-center text-[#b89552] hover:bg-[#fdf6ec] transition"
-      >
-        <FiPlus size={14} />
-      </button>
-    </div>
-  )}
-
-  {/* Add to cart / Go to cart */}
-  <button
-    onClick={handleCart}
-    className={`flex-1 min-w-[160px] flex items-center justify-center gap-2 text-white text-sm font-medium px-6 py-3.5 rounded-full transition-all
-      ${cartAnimating ? "cart-bounce" : ""}
-      bg-[#b89552] hover:bg-[#9e7f3e] active:scale-[0.98]`}
-  >
-    <FiShoppingCart size={16} />
-    {inCart ? "Go To Cart →" : "Add to Cart"}
-  </button>
-
-  {/* Wishlist button */}
-  <button
-    onClick={handleWishlist}
-    className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all hover:scale-110 ${
-      isInWishlist ? "border-[#b89552] bg-amber-50" : "border-gray-200 hover:border-[#b89552]"
-    }`}
-  >
-    <FaHeart
-      size={16}
-      className={isInWishlist ? "heart-pop" : ""}
-      style={{ color: isInWishlist ? "#b89552" : "#d4bfa0", transition: "color 0.3s" }}
-    />
-  </button>
-</div>
-
-              {/* Cart qty indicator */}
               {inCart && (
                 <div className="mt-3 flex items-center gap-2 text-sm text-[#b89552]">
                   <FiShoppingCart size={13} />
@@ -300,7 +303,6 @@ const handleDecrease = () => {
 
               <div className="my-5 h-px bg-gray-100" />
 
-              {/* Perks */}
               <div className="flex flex-col gap-3">
                 {PERKS.map((p, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-gray-500">
@@ -312,8 +314,7 @@ const handleDecrease = () => {
 
               <div className="my-5 h-px bg-gray-100" />
 
-              {/* Meta */}
-              <div className="grid grid-cols-2 gap-y-3 text-sm">
+              {/* <div className="grid grid-cols-2 gap-y-3 text-sm">
                 {[
                   ["Category", product.category_name || "—"],
                   ["Product ID", `#${product.id}`],
@@ -323,7 +324,7 @@ const handleDecrease = () => {
                     <span className="text-gray-700">{v}</span>
                   </React.Fragment>
                 ))}
-              </div>
+              </div> */}
 
             </div>
           </div>

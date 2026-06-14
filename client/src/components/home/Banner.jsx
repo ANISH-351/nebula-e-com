@@ -42,7 +42,7 @@ const Banner = () => {
               </p>
 
               {/* Buttons */}
-              <div className="flex flex-wrap gap-3 sm:gap-4 pt-2">
+              {/* <div className="flex flex-wrap gap-3 sm:gap-4 pt-2">
                 
                 <button className="bg-[#c5a46d] hover:bg-[#b89552] transition text-white px-6 sm:px-8 py-3 rounded-full text-sm tracking-wide">
                   Shop Now
@@ -52,7 +52,7 @@ const Banner = () => {
                   Explore
                 </button>
 
-              </div>
+              </div> */}
 
             </div>
 
